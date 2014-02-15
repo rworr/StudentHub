@@ -18,8 +18,29 @@ class Handler(webapp2.RequestHandler):
 
 class MainPage(Handler):
     def get(self):
-        self.render("index.html");
+        self.render("index.html")
+
+class CoursesPage(Handler):
+    def get(self):
+        self.render("courses.html")
+
+class TextbooksPage(Handler):
+    def get(self):
+        self.render("textbooks.html")
+
+class HousingPage(Handler):
+    def get(self):
+        self.render("housing.html")
+
+class ProcrastinationPage(Handler):
+    def get(self):
+        self.render("procrastination.html")
+
 
 application = webapp2.WSGIApplication([
-                  ('/', MainPage)],
+                  ('/', MainPage),
+                  ('/courses', CoursesPage),
+                  ('/textbooks', TextbooksPage),
+                  ('/housing', HousingPage),
+                  ('/procrastination', ProcrastinationPage)],
                   debug = True);
