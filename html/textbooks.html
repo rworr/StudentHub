@@ -46,6 +46,9 @@
       <div class="starter-template">
         <h1>Your Textbooks</h1>
         <p class="lead">
+          {% for link in links %}
+            <a href="http:\\{{link.link}}">{{link.link}}</a> <br/>
+          {% endfor %}
           <form method="post">
             Add link: <input type="text" name="addtextbook" value="{{addtextbook}}">
             <input type="submit" value="Submit">
@@ -53,10 +56,6 @@
         </p>
       </div>
       <br>
-
-      {% for link in links %}
-        <a href="http:\\{{link.link}}">{{link.link}}</a>
-      {% endfor %}
 
     </div><!-- /.container -->
 
