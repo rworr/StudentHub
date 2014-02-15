@@ -2,8 +2,8 @@ import urllib, urllib2, cookielib
 
 #setup for logon through UWaterloo's central authentication system
 url = 'https://cas.uwaterloo.ca/cas/login'
-data = urllib.urlencode({'username':'rworr',
-        'password':'', #enter password to login
+data = urllib.urlencode({'username':'kj2wong',
+        'password':'temp', #enter password to login
         'lt':'e1s1',
         '_eventId':'submit',
         'submit':'LOGIN'})
@@ -18,6 +18,7 @@ opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
 
 #first request: GET to CAS, set up session cookies
 req = urllib2.Request(url, headers=headers)
+print req
 page = opener.open(req)
 
 #second request: POST to CAS, login

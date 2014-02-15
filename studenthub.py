@@ -1,7 +1,7 @@
 import webapp2
 import jinja2
 import os
-import urllib2
+import urllib, urllib2, cookielib
 import json
 from google.appengine.api import users
 
@@ -92,6 +92,45 @@ class MainPage(Handler):
 
     def get(self):
         self.render_with_data()
+
+class LoginPage(Handler):
+    def get(self):
+        self.render("login.html")
+
+    def post(self):
+        username = str(self.request.get("username"))
+        password = str(self.request.get("password"))
+
+        url = 'http://cas.uwaterloo.ca/cas/login'
+        data = urllib.urlencode({'username': username,
+                'password': password,
+                'lt':'e1s1',
+                '_eventId':'submit',
+                'submit':'LOGIN'})
+
+        #headers for requests
+        headers = { 'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0',
+                    'Connection':'keep-alive' }
+
+        #setup cookies
+        cj = cookielib.CookieJar()
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+
+        #first request: GET to CAS, set up session cookies
+        req = urllib2.Request(url, headers=headers)
+        print req
+        page = opener.open(req)
+        """
+        #second request: POST to CAS, login
+        req = urllib2.Request(url, data, headers=headers)
+        page = opener.open(req)
+
+        output_file = 'script.html'
+        f = open(output_file, 'w')
+        f.write(page.read())
+        f.close()
+        """
+        self.render("login.html")
 
 class Link():
     def __init__(self, link, name = "", courseId = None):
@@ -237,6 +276,7 @@ class ProcrastinationPage(Handler):
 
 
 application = webapp2.WSGIApplication([
+                  ('/login', LoginPage),
                   ('/', MainPage),
                   ('/courses', CoursesPage),
                   ('/textbooks', TextbooksPage),
