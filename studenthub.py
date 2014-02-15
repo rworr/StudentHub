@@ -75,6 +75,7 @@ class Link():
         self.link = link
         self.courseId = courseId
         self.name = name
+        print self.name
         if(self.name == ""):
             self.name = link
             """
@@ -140,7 +141,7 @@ class TextbooksPage(Handler):
     def render_links(self):
         textbook_query = TextbookTable.query()
         link_list = textbook_query.fetch()
-        links = [Link(link.link) for link in link_list]
+        links = [Link(link.link, link.name) for link in link_list]
         self.render("textbooks.html", links=links)
 
     def get(self):
