@@ -47,7 +47,12 @@
         <h1>Your Textbooks</h1>
         <p class="lead">
           {% for link in links %}
-            <a href="http:\\{{link.link}}" target="_blank">{{link.link}}</a> <br/>
+            <form method="post">
+              <input type="submit" value="x" 
+                     name="delete{{link.key("TextbookTable")}}">
+              <a href="http:\\{{link.link}}" target="_blank">{{link.link}}</a>
+            </form>
+            <br>
           {% endfor %}
           <form method="post">
             Add link: <input type="text" name="addtextbook" value="{{addtextbook}}">

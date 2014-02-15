@@ -45,11 +45,27 @@
       <div class="starter-template">
         <h1>Your Courses</h1>
         <p class="lead">
+
+          {% for link in links %}
+            <form method="post">
+              <input type="submit" value="x" 
+                     name="delete{{link.key("TextbookTable")}}">
+              <a href="http:\\{{link.link}}" target="_blank">{{link.link}}</a>
+            </form>
+            <br>
+          {% endfor %}
+
           {% for course in courses %}
             <h4>{{course.name}}</h4>
             <div class="course-links">
               {% for link in course.links %}
-                <li><a href="http:\\{{link}}" target="_blank">{{link}}</a></li>
+                <form method="post">
+                  <input type="submit" value="x" 
+                         name="delete{{link.key("CourseLinkTable")}}">
+                  <li>
+                    <a href="http:\\{{link.link}}" target="_blank">{{link.link}}</a>
+                  </li>
+                </form>
                 <br/>
               {% endfor %}
               <form method="post">
