@@ -14,7 +14,7 @@ html_dir = os.path.join(os.path.dirname(__file__), 'html')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoescape = True)
 
 #headers for requests
-headers = { 'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0',
+headers = { #'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0',
             'Connection':'keep-alive' }
 
 #setup cookies
