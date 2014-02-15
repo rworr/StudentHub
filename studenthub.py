@@ -46,17 +46,24 @@ class CoursesPage(Handler):
         self.render("courses.html")
 
 class TextbooksPage(Handler):
-    def get(self):
+    def render_links(self, latest=None):
         textbook_query = TextbookTable.query()
         links = textbook_query.fetch()
+        if(latest):
+            links.append(latest)
+        print links
         self.render("textbooks.html", links=links)
 
+    def get(self):
+        self.render_links()
+
     def post(self):
-        link_val = self.request.get("add-textbook")
+        link_val = self.request.get("addtextbook")
+        print link_val
         if(link_val):
             link = TextbookTable(link = link_val)
             link.put()
-            self.redirect("/textbooks")
+            self.render_links(link)
 
 class HousingPage(Handler):
     def get(self):

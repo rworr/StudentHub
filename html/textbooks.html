@@ -44,13 +44,18 @@
     <div class="container">
 
       <div class="starter-template">
-        <h1>Bootstrap starter template</h1>
-        <p class="lead">Textbooks page</p>
+        <h1>Your Textbooks</h1>
+        <p class="lead">
+          <form method="post">
+            Add link: <input type="text" name="addtextbook" value="{{addtextbook}}">
+            <input type="submit" value="Submit">
+          </form>
+        </p>
       </div>
       <br>
 
       {% for link in links %}
-        <a href="{{link.link}}">{{link.link}}</a>
+        <a href="http:\\{{link.link}}">{{link.link}}</a>
       {% endfor %}
 
     </div><!-- /.container -->
