@@ -32,6 +32,7 @@ class TextbookTable(ndb.Model):
 
 class CourseTable(ndb.Model):
     name = ndb.StringProperty(required = True)
+    courseId = ndb.StringProperty(required = True)
     
 class CourseLinkTable(ndb.Model):
     link = ndb.StringProperty(required = True)
@@ -78,23 +79,37 @@ class CoursesPage(Handler):
     def post(self):
         course_val = self.request.get("addcourse")
         if(course_val):
-            course = CourseTable(name = course_val)
+            course = CourseTable(name = course_val, courseId = course_val)
             course.put()
-            self.render_courses(course)
+            course.courseId = Course(course_val, []).key()
+            course.put()
+            self.render_courses()
         elif "addcourselink" in self.request.arguments()[0]:
             idd = self.request.arguments()[0]
             link_val = self.request.get(idd)
             if(link_val):
                 idd = idd.replace("addcourselink", "")
-                link = CourseLinkTable(link = link_val, courseId = idd)
+                link = CourseLinkTable(link = link_val, courseId = idd, linkKey = link_val)
                 link.put()
-                self.render_courses(None, LatestLink(link_val, idd))
-        elif "delete" in self.request.arguments()[0]:
-            remove_id = self.request.arguments()[0].replace("delete", "")
-            links = TextbookTable.query(TextbookTable.linkKey == remove_id)
+                link.linkKey = Link(link_val).key("CourseLinkTable")
+                link.put()
+                self.render_courses()
+        elif "deletecourselink" in self.request.arguments()[0]:
+            remove_id = self.request.arguments()[0].replace("deletecourselink", "")
+            links = CourseLinkTable.query(CourseLinkTable.linkKey == remove_id)
             for link in links:
        	        link.key.delete()
-            self.render_links()
+            self.render_courses()
+        elif "deletecourse" in self.request.arguments()[0]:
+            remove_id = self.request.arguments()[0].replace("deletecourse", "")
+            courses = CourseTable.query(CourseTable.courseId == remove_id)
+            for course in courses:
+                link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key())
+                link_list = link_query.fetch()
+                for link in link_list:
+                    link.key.delete()
+                course.key.delete()
+            self.render_courses()
 
 class TextbooksPage(Handler):
     def render_links(self):

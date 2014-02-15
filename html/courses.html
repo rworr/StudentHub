@@ -57,15 +57,19 @@
 
           {% for course in courses %}
             <h4>{{course.name}}</h4>
+            <form method="post">
+              <input type="submit" value="x" 
+                     name="deletecourse{{course.key()}}">
+            </form>
             <div class="course-links">
               {% for link in course.links %}
-                <form method="post">
-                  <input type="submit" value="x" 
-                         name="delete{{link.key("CourseLinkTable")}}">
                   <li>
-                    <a href="http:\\{{link.link}}" target="_blank">{{link.link}}</a>
+                    <form method="post">
+                      <input type="submit" value="x" 
+                             name="deletecourselink{{link.key("CourseLinkTable")}}">
+                      <a href="http:\\{{link.link}}" target="_blank">{{link.link}}</a>
+                    </form>
                   </li>
-                </form>
                 <br/>
               {% endfor %}
               <form method="post">
