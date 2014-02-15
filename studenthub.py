@@ -113,37 +113,6 @@ class LoginPage(Handler):
         username = str(self.request.get("username"))
         password = str(self.request.get("password"))
 
-<<<<<<< HEAD
-        url = 'http://cas.uwaterloo.ca/cas/login'
-        data = urllib.urlencode({'username': username,
-                'password': password,
-                'lt':'e1s1',
-                '_eventId':'submit',
-                'submit':'LOGIN'})
-
-        #headers for requests
-        headers = { 'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0',
-                    'Connection':'keep-alive' }
-
-        #setup cookies
-        cj = cookielib.CookieJar()
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-
-        #first request: GET to CAS, set up session cookies
-        req = urllib2.Request(url, headers=headers)
-        page = opener.open(req)
-        """
-        #second request: POST to CAS, login
-        req = urllib2.Request(url, data, headers=headers)
-        page = opener.open(req)
-
-        output_file = 'script.html'
-        f = open(output_file, 'w')
-        f.write(page.read())
-        f.close()
-        """
-        self.render("login.html")
-=======
 	#setup for logon through UWaterloo's central authentication system
 	url = 'https://cas.uwaterloo.ca/cas/login'
 	data = urllib.urlencode({'username':username,
@@ -160,8 +129,7 @@ class LoginPage(Handler):
 	req = urllib2.Request(url, data, headers=headers)
 	page = opener.open(req)
 
-        self.redirect('/')
->>>>>>> e0cb6804cd522826713089e09d849176b7489988
+    self.redirect('/')
 
 class Link():
     def __init__(self, link, name = "", courseId = None):
