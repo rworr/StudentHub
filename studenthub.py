@@ -10,6 +10,8 @@ import re
 from google.appengine.api import users
 from google.appengine.ext import ndb
 
+authenticated = False
+
 html_dir = os.path.join(os.path.dirname(__file__), 'html')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoescape = True)
 
@@ -102,14 +104,17 @@ class MainPage(Handler):
         self.render("index.html", weather = Weather(city, country, temperature, weatherType, pic_link))
 
     def get(self):
-        self.render_with_data()
+        if not authenticated:
+            self.redirect('/login')
+        else:
+            self.render_with_data()
 
 class LoginPage(Handler):
     def get(self):
         self.render("login.html")
 
     def post(self):
-        global cj, opener
+        global cj, opener, authenticated
         username = str(self.request.get("username"))
         password = str(self.request.get("password"))
 
@@ -129,7 +134,12 @@ class LoginPage(Handler):
         req = urllib2.Request(url, data, headers=headers)
         page = opener.open(req)
 
-        self.redirect('/')
+        result = page.read()
+        authenticated = "You have successfully logged into the University of Waterloo Central Authentication Service" in result
+        if not authenticated:
+            self.render("login.html", error="You don't even go here...")
+        else:
+            self.redirect('/')
 
 class Link():
     def __init__(self, link, name = "", courseId = None):
@@ -161,7 +171,10 @@ class CoursesPage(Handler):
         self.render("courses.html", courses=courses)
 
     def get(self):
-        self.render_courses()
+        if not authenticated:
+            self.redirect('/login')
+        else:
+            self.render_courses()
 
     def post(self):
         course_val = self.request.get("addcourse")
@@ -259,7 +272,10 @@ class TextbooksPage(Handler):
 
 
     def get(self):
-        self.render_links()
+        if not authenticated:
+            self.redirect('/login')
+        else:
+            self.render_links()
 
     def post(self):
         isbn_num = self.request.get("addtextbook")
@@ -290,7 +306,10 @@ class HousingPage(Handler):
         self.render("housing.html", links=links)
 
     def get(self):
-        self.render_links()
+        if not authenticated:
+            self.redirect('/login')
+        else:
+            self.render_links()
 
     def post(self):
         link_val = self.request.get("addhousing")
