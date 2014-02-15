@@ -1,7 +1,7 @@
 import webapp2
 import jinja2
 import os
-import urllib
+import urllib2
 import json
 from google.appengine.api import users
 
@@ -59,7 +59,7 @@ class ProcrastinationTable(ndb.Model):
 
 class MainPage(Handler):
     def render_with_data(self):
-        data = urllib.urlopen("http://api.openweathermap.org/data/2.5/weather?q=Waterloo,ca")
+        data = urllib2.urlopen("http://api.openweathermap.org/data/2.5/weather?q=Waterloo,ca")
         json_weather = json.loads(str(data.read()))
         city = json_weather["name"]
         country = json_weather["sys"]["country"]
@@ -71,10 +71,16 @@ class MainPage(Handler):
         self.render_with_data()
 
 class Link():
-    def __init__(self, link, name, courseId = None):
+    def __init__(self, link, name = "", courseId = None):
         self.link = link
         self.courseId = courseId
         self.name = name
+        if(self.name == ""):
+            self.name = link
+            """
+            page = urllib2.urlopen("http://" + link).read()
+            self.name = page[page.find("<title>")+len("<title>"):page.find("</title>")]
+            """
 
     def key(self, table):
         return ndb.Key(table, self.link).id()
@@ -88,6 +94,7 @@ class CoursesPage(Handler):
             link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key())
             link_list = link_query.fetch()
             links = [Link(link.link) for link in link_list]
+            print links
             courses.append(Course(course.name, links))
         self.render("courses.html", courses=courses)
 
@@ -133,7 +140,7 @@ class TextbooksPage(Handler):
     def render_links(self):
         textbook_query = TextbookTable.query()
         link_list = textbook_query.fetch()
-        links = [Link(link.link, link.name) for link in link_list]
+        links = [Link(link.link) for link in link_list]
         self.render("textbooks.html", links=links)
 
     def get(self):
@@ -143,12 +150,12 @@ class TextbooksPage(Handler):
         isbn_num = self.request.get("addtextbook")
         if(isbn_num):
             link_val = "www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" + isbn_num
-            data = urllib.urlopen("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn_num)
+            data = urllib2.urlopen("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn_num)
             json_book = json.loads(str(data.read()))
             book_name = json_book["items"][0]["volumeInfo"]["title"]
             link = TextbookTable(link = link_val, name = book_name, linkKey = link_val)
             link.put()
-            link.linkKey = Link(link_val, "").key("TextbookTable")
+            link.linkKey = Link(link_val).key("TextbookTable")
             link.put()
             self.render_links()
         elif "delete" in self.request.arguments()[0]:
