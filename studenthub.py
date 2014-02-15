@@ -38,10 +38,7 @@ class Handler(webapp2.RequestHandler):
 
 class TextbookTable(ndb.Model):
     link = ndb.StringProperty(required = True)
-<<<<<<< HEAD
     name = ndb.StringProperty(required = True)
-=======
->>>>>>> 09a8a053f18c100592755ec2a3b4b3d8275b9a84
     linkKey = ndb.StringProperty(required = True)
 
 class CourseTable(ndb.Model):
@@ -151,15 +148,9 @@ class TextbooksPage(Handler):
         json_book = json.loads(str(data.read()))
         book_name = json_book["items"][0]["volumeInfo"]["title"]
         if(link_val):
-<<<<<<< HEAD
             link = TextbookTable(link = link_val, name = book_name, linkKey = link_val)
             link.put()
             link.linkKey = Link(link_val).key("TextbookTable")
-=======
-            link = TextbookTable(link = link_val, linkKey = link_val)
-            link.put()
-            link.linkKeey = Link(link_val).key("TextbookTable")
->>>>>>> 09a8a053f18c100592755ec2a3b4b3d8275b9a84
             link.put()
             self.render_links()
         elif "delete" in self.request.arguments()[0]:
