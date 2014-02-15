@@ -47,6 +47,11 @@
         <h1>Bootstrap starter template</h1>
         <p class="lead">Textbooks page</p>
       </div>
+      <br>
+
+      {% for link in links %}
+        <a href="{{link.link}}">{{link.link}}</a>
+      {% endfor %}
 
     </div><!-- /.container -->
 
