@@ -129,7 +129,7 @@ class LoginPage(Handler):
         req = urllib2.Request(url, data, headers=headers)
         page = opener.open(req)
 
-    self.redirect('/')
+        self.redirect('/')
 
 class Link():
     def __init__(self, link, name = "", courseId = None):
