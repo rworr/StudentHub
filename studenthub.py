@@ -13,7 +13,7 @@ class Course():
       self.links = links
 
     def key(self):
-      return ndb.Key('CourseTable', self.name);
+      return ndb.Key('CourseTable', self.name).id();
 
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -34,7 +34,7 @@ class CourseTable(ndb.Model):
     
 class CourseLinkTable(ndb.Model):
     link = ndb.StringProperty(required = True)
-    courseId = ndb.IntegerProperty(required = True)
+    courseId = ndb.StringProperty(required = True)
 
 class HousingTable(ndb.Model):
     link = ndb.StringProperty(required = True)
@@ -46,23 +46,27 @@ class MainPage(Handler):
     def get(self):
         self.render("index.html")
 
+class LatestLink():
+    def __init__(self, link, courseId):
+        self.link = link
+        self.courseId = courseId
+
 class CoursesPage(Handler):
-    def render_courses(self, latestCourse=None):
+    def render_courses(self, latestCourse=None, latestLink=None):
         course_query = CourseTable.query()
         courses_list = course_query.fetch()
         courses = []
         for course in courses_list:
             links = []
-            courses.append(Course(course.name, links))
-            """
-            link_query = CourseLinkTable.query(courseId=course_key(course.name))
+            link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key())
             link_list = link_query.fetch()
             for link in link_list:
                 links.append(link.link) 
-        """
+            if(latestLink and latestLink.courseId == Course(course.name,[]).key()):
+                links.append(latestLink.link)
+            courses.append(Course(course.name, links))
         if(latestCourse):
             courses.append(Course(latestCourse.name, []))
-        print courses
         self.render("courses.html", courses=courses)
 
     def get(self):
@@ -70,12 +74,17 @@ class CoursesPage(Handler):
 
     def post(self):
         course_val = self.request.get("addcourse")
-        print course_val
         if(course_val):
             course = CourseTable(name = course_val)
             course.put()
             self.render_courses(course)
-        link_val = self.request.get("addcourselink")
+        idd = self.request.arguments()[0]
+        link_val = self.request.get(idd)
+        if(link_val):
+            idd = idd.replace("addcourselink", "")
+            link = CourseLinkTable(link = link_val, courseId = idd)
+            link.put()
+            self.render_courses(None, LatestLink(link_val, idd))
 
 class TextbooksPage(Handler):
     def render_links(self, latest=None):
