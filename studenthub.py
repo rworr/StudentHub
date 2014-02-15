@@ -1,5 +1,6 @@
 import webapp2
 import jinja2
+import os
 
 html_dir = os.path.join(os.path.dirname(__file__), 'html')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoescape = True)
@@ -17,7 +18,7 @@ class Handler(webapp2.RequestHandler):
 
 class MainPage(Handler):
     def get(self):
-        self.render("index.html", None);
+        self.render("index.html");
 
 application = webapp2.WSGIApplication([
                   ('/', MainPage)],
