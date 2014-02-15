@@ -11,11 +11,12 @@ html_dir = os.path.join(os.path.dirname(__file__), 'html')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoescape = True)
 
 class Weather():
-    def __init__(self, city, country, temperature, weatherType):
+    def __init__(self, city, country, temperature, weatherType, pic_link):
         self.city = city
         self.country = country
         self.temperature = temperature
         self.weatherType = weatherType
+        self.pic_link = pic_link
 
 class Course():
     def __init__(self, name, links):
@@ -65,7 +66,29 @@ class MainPage(Handler):
         country = json_weather["sys"]["country"]
         temperature = json_weather["main"]["temp"] - 273.15
         weatherType = json_weather["weather"][0]["main"]
-        self.render("index.html", weather = Weather(city, country, temperature, weatherType))
+
+        
+        code = json_weather["weather"][0]["id"]
+        if code > 199 and code < 233:
+            pic_link = "http://openweathermap.org/img/w/11d.png"
+        elif (code > 299 and code < 322) or (code > 519 and code < 532):
+            pic_link = "http://openweathermap.org/img/w/09d.png"
+        elif (code > 499 and code < 505):
+            pic_link = "http://openweathermap.org/img/w/10d.png"
+        elif (code == 511) or (code > 599 and code < 623):
+            pic_link = "http://openweathermap.org/img/w/13d.png"
+        elif (code > 699 and code < 782):
+            pic_link = "http://openweathermap.org/img/w/50d.png"
+        elif code == 800:
+            pic_link = "http://openweathermap.org/img/w/01d.png"
+        elif code == 801:
+            pic_link = "http://openweathermap.org/img/w/02d.png"
+        elif code == 802 or code == 803:
+            pic_link = "http://openweathermap.org/img/w/03d.png"
+        else:
+            pic_link = "http://openweathermap.org/img/w/04d.png"
+
+        self.render("index.html", weather = Weather(city, country, temperature, weatherType, pic_link))
 
     def get(self):
         self.render_with_data()
