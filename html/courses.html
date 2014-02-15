@@ -42,20 +42,25 @@
     </div>
 
     <div class="container">
-
       <div class="starter-template">
         <h1>Your Courses</h1>
         <p class="lead">
-          <h4>ECE 380</h4>
+          {% for course in courses %}
+            <h4>{{course.name}}</h4>
+            {% for link in course.links %}
+              <a href="http:\\{{link}}">{{link}}</a>
+            {% endfor %}
             <div class="course-links">
-              <form>
-                Add link: <input type="text" name="add-course-link">
+              <form method="post">
+                Add link: <input type="text" 
+                           name="addcourselink{{course.key()}}">
                 <input type="submit" value="Submit">
               </form>
             </div>
           <br/>
-          <form>
-            Add course: <input type="text" name="add-course">
+          {% endfor %}
+          <form method="post">
+            Add course: <input type="text" name="addcourse">
             <input type="submit" value="Submit">
           </form>
         </p>
