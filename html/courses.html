@@ -47,10 +47,11 @@
         <p class="lead">
           {% for course in courses %}
             <h4>{{course.name}}</h4>
-            {% for link in course.links %}
-              <a href="http:\\{{link}}">{{link}}</a>
-            {% endfor %}
             <div class="course-links">
+              {% for link in course.links %}
+                <li><a href="http:\\{{link}}" target="_blank">{{link}}</a></li>
+                <br/>
+              {% endfor %}
               <form method="post">
                 Add link: <input type="text" 
                            name="addcourselink{{course.key()}}">
@@ -60,7 +61,7 @@
           <br/>
           {% endfor %}
           <form method="post">
-            Add course: <input type="text" name="addcourse">
+            <h4>Add another course</h4><input type="text" name="addcourse">
             <input type="submit" value="Submit">
           </form>
         </p>

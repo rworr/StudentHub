@@ -47,7 +47,7 @@
         <h1>Your Textbooks</h1>
         <p class="lead">
           {% for link in links %}
-            <a href="http:\\{{link.link}}">{{link.link}}</a> <br/>
+            <a href="http:\\{{link.link}}" target="_blank">{{link.link}}</a> <br/>
           {% endfor %}
           <form method="post">
             Add link: <input type="text" name="addtextbook" value="{{addtextbook}}">
