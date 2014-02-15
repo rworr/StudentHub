@@ -56,10 +56,10 @@
           {% endfor %}
 
           {% for course in courses %}
-            <h4>{{course.name}}</h4>
             <form method="post">
               <input type="submit" value="x" 
                      name="deletecourse{{course.key()}}">
+            <h4>{{course.name}}</h4>
             </form>
             <div class="course-links">
               {% for link in course.links %}
