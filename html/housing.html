@@ -44,8 +44,16 @@
     <div class="container">
 
       <div class="starter-template">
-        <h1>Bootstrap starter template</h1>
-        <p class="lead">Housing page</p>
+        <h1>Your Housing Leads</h1>
+        <p class="lead">
+          {% for link in links %}
+            <a href="http:\\{{link.link}}">{{link.link}}</a> <br/>
+          {% endfor %}
+          <form method="post">
+            Add link: <input type="text" name="addhousing" value="{{addhousing}}">
+            <input type="submit" value="Submit">
+          </form>
+        </p>
       </div>
 
     </div><!-- /.container -->
