@@ -15,7 +15,7 @@ jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoe
 
 #headers for requests
 headers = { 'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0',
-	    'Connection':'keep-alive' }
+            'Connection':'keep-alive' }
 
 #setup cookies
 cj = cookielib.CookieJar()
@@ -109,25 +109,25 @@ class LoginPage(Handler):
         self.render("login.html")
 
     def post(self):
-	global cj, opener
+        global cj, opener
         username = str(self.request.get("username"))
         password = str(self.request.get("password"))
 
-	#setup for logon through UWaterloo's central authentication system
-	url = 'https://cas.uwaterloo.ca/cas/login'
-	data = urllib.urlencode({'username':username,
-		'password':password, #enter password to login
-		'lt':'e1s1',
-		'_eventId':'submit',
-		'submit':'LOGIN'})
+        #setup for logon through UWaterloo's central authentication system
+        url = 'https://cas.uwaterloo.ca/cas/login'
+        data = urllib.urlencode({'username':username,
+                'password':password, #enter password to login
+                'lt':'e1s1',
+                '_eventId':'submit',
+                'submit':'LOGIN'})
 
-	#first request: GET to CAS, set up session cookies
-	req = urllib2.Request(url, headers=headers)
-	page = opener.open(req)
+        #first request: GET to CAS, set up session cookies
+        req = urllib2.Request(url, headers=headers)
+        page = opener.open(req)
 
-	#second request: POST to CAS, login
-	req = urllib2.Request(url, data, headers=headers)
-	page = opener.open(req)
+        #second request: POST to CAS, login
+        req = urllib2.Request(url, data, headers=headers)
+        page = opener.open(req)
 
         self.redirect('/')
 
@@ -185,7 +185,7 @@ class CoursesPage(Handler):
             remove_id = self.request.arguments()[0].replace("deletecourselink", "")
             links = CourseLinkTable.query(CourseLinkTable.linkKey == remove_id)
             for link in links:
-       	        link.key.delete()
+                       link.key.delete()
             self.render_courses()
         elif "deletecourse" in self.request.arguments()[0]:
             remove_id = self.request.arguments()[0].replace("deletecourse", "")
@@ -206,56 +206,56 @@ class TextbooksPage(Handler):
         links = [Link(link.link, link.name) for link in link_list]
         self.render("textbooks.html", links=links)
 
-	#for booklook
-	url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search_student.html'
-	#access the booklook search page, setup cookies for booklook
-	req = urllib2.Request(url, headers=headers)
-	page = opener.open(req)
+        #for booklook
+        url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search_student.html'
+        #access the booklook search page, setup cookies for booklook
+        req = urllib2.Request(url, headers=headers)
+        page = opener.open(req)
 
-	#hardcoded values for POST request for book info
-	url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search.html'
-	data = urllib.urlencode({'mv_profile':'search_student',
-				 'searchterm':'1141'})
+        #hardcoded values for POST request for book info
+        url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search.html'
+        data = urllib.urlencode({'mv_profile':'search_student',
+                                 'searchterm':'1141'})
 
-	req = urllib2.Request(url, data, headers=headers)
-	page = opener.open(req)
+        req = urllib2.Request(url, data, headers=headers)
+        page = opener.open(req)
 
-	def start_idx(html, match):
-	    if match in html:
-		return html.find(match) + len(match)
-	    return -1
+        def start_idx(html, match):
+            if match in html:
+                return html.find(match) + len(match)
+            return -1
 
-	def parse(html, start_match, end_match):
-	    start = start_idx(html, start_match)
-	    end = html.find(end_match, start)
-	    val = html[start:end].strip()
-	    return val, html[end:]
+        def parse(html, start_match, end_match):
+            start = start_idx(html, start_match)
+            end = html.find(end_match, start)
+            val = html[start:end].strip()
+            return val, html[end:]
 
-	book_section = "book_section\">"
-	book_info = "book_info\">"
+        book_section = "book_section\">"
+        book_info = "book_info\">"
 
-	print "Your Textbooks"
-	html = page.read()
-	old = html
-	while "book_section\">" in html:
-	    [course, html] = parse(html, book_section, "-")
-	    print "Course: " + re.sub("\s\s+", " ", course)
-	    while (((html.find(book_section) > html.find(book_info)) and
-		    book_section in html) or
-		  (book_section not in html and book_info in html)):
-		if(html.find("Required Item") < html.find("author\">")):
-		    print "\t\"Required\""
-		elif (html.find("Optional Item") < html.find("author\">")):
-		    print "\tOptional!"
+        print "Your Textbooks"
+        html = page.read()
+        old = html
+        while "book_section\">" in html:
+            [course, html] = parse(html, book_section, "-")
+            print "Course: " + re.sub("\s\s+", " ", course)
+            while (((html.find(book_section) > html.find(book_info)) and
+                    book_section in html) or
+                  (book_section not in html and book_info in html)):
+                if(html.find("Required Item") < html.find("author\">")):
+                    print "\t\"Required\""
+                elif (html.find("Optional Item") < html.find("author\">")):
+                    print "\tOptional!"
 
-		[author, html] = parse(html, "author\">", "</span>")
-		[title, html] = parse(html, "title\">", "</span>")
-		[sku, html] = parse(html, "SKU:", "</span>")
-		[price, html] = parse(html, "Price:", "</span>")
-		print "\tAuthor:", author
-		print "\tTitle:", title
-		print "\tSKU:", sku
-		print "\tPrice:", price, "\n"
+                [author, html] = parse(html, "author\">", "</span>")
+                [title, html] = parse(html, "title\">", "</span>")
+                [sku, html] = parse(html, "SKU:", "</span>")
+                [price, html] = parse(html, "Price:", "</span>")
+                print "\tAuthor:", author
+                print "\tTitle:", title
+                print "\tSKU:", sku
+                print "\tPrice:", price, "\n"
 
 
     def get(self):
@@ -278,7 +278,7 @@ class TextbooksPage(Handler):
             print remove_id
             links = TextbookTable.query(TextbookTable.linkKey == remove_id)
             for link in links:
-       	        link.key.delete()
+                       link.key.delete()
             self.render_links()
 
 
@@ -304,7 +304,7 @@ class HousingPage(Handler):
             remove_id = self.request.arguments()[0].replace("delete", "")
             links = HousingTable.query(HousingTable.linkKey == remove_id)
             for link in links:
-       	        link.key.delete()
+                       link.key.delete()
             self.render_links()
 
 class ProcrastinationPage(Handler):
