@@ -3,6 +3,7 @@ import jinja2
 import os
 import urllib
 import json
+from google.appengine.api import users
 
 from google.appengine.ext import ndb
 
@@ -37,16 +38,24 @@ class Handler(webapp2.RequestHandler):
 
 class TextbookTable(ndb.Model):
     link = ndb.StringProperty(required = True)
+<<<<<<< HEAD
+    name = ndb.StringProperty(required = True)
+=======
+>>>>>>> 09a8a053f18c100592755ec2a3b4b3d8275b9a84
+    linkKey = ndb.StringProperty(required = True)
 
 class CourseTable(ndb.Model):
     name = ndb.StringProperty(required = True)
+    courseId = ndb.StringProperty(required = True)
     
 class CourseLinkTable(ndb.Model):
     link = ndb.StringProperty(required = True)
     courseId = ndb.StringProperty(required = True)
+    linkKey = ndb.StringProperty(required = True)
 
 class HousingTable(ndb.Model):
     link = ndb.StringProperty(required = True)
+    linkKey = ndb.StringProperty(required = True)
 
 class ProcrastinationTable(ndb.Model):
     link = ndb.StringProperty(required = True)
@@ -64,27 +73,27 @@ class MainPage(Handler):
     def get(self):
         self.render_with_data()
 
-class LatestLink():
-    def __init__(self, link, courseId):
+class Link():
+    def __init__(self, link, courseId = None):
         self.link = link
         self.courseId = courseId
 
+    def key(self, table):
+        return ndb.Key(table, self.link).id()
+
+    def Key(self, table):
+        return ndb.Key(table, self.link)
+
 class CoursesPage(Handler):
-    def render_courses(self, latestCourse=None, latestLink=None):
+    def render_courses(self):
         course_query = CourseTable.query()
         courses_list = course_query.fetch()
         courses = []
         for course in courses_list:
-            links = []
             link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key())
             link_list = link_query.fetch()
-            for link in link_list:
-                links.append(link.link) 
-            if(latestLink and latestLink.courseId == Course(course.name,[]).key()):
-                links.append(latestLink.link)
+            links = [Link(link.link) for link in link_list]
             courses.append(Course(course.name, links))
-        if(latestCourse):
-            courses.append(Course(latestCourse.name, []))
         self.render("courses.html", courses=courses)
 
     def get(self):
@@ -93,41 +102,79 @@ class CoursesPage(Handler):
     def post(self):
         course_val = self.request.get("addcourse")
         if(course_val):
-            course = CourseTable(name = course_val)
+            course = CourseTable(name = course_val, courseId = course_val)
             course.put()
-            self.render_courses(course)
-        idd = self.request.arguments()[0]
-        link_val = self.request.get(idd)
-        if(link_val):
-            idd = idd.replace("addcourselink", "")
-            link = CourseLinkTable(link = link_val, courseId = idd)
-            link.put()
-            self.render_courses(None, LatestLink(link_val, idd))
+            course.courseId = Course(course_val, []).key()
+            course.put()
+            self.render_courses()
+        elif "addcourselink" in self.request.arguments()[0]:
+            idd = self.request.arguments()[0]
+            link_val = self.request.get(idd)
+            if(link_val):
+                idd = idd.replace("addcourselink", "")
+                link = CourseLinkTable(link = link_val, courseId = idd, linkKey = link_val)
+                link.put()
+                link.linkKey = Link(link_val).key("CourseLinkTable")
+                link.put()
+                self.render_courses()
+        elif "deletecourselink" in self.request.arguments()[0]:
+            remove_id = self.request.arguments()[0].replace("deletecourselink", "")
+            links = CourseLinkTable.query(CourseLinkTable.linkKey == remove_id)
+            for link in links:
+       	        link.key.delete()
+            self.render_courses()
+        elif "deletecourse" in self.request.arguments()[0]:
+            remove_id = self.request.arguments()[0].replace("deletecourse", "")
+            courses = CourseTable.query(CourseTable.courseId == remove_id)
+            for course in courses:
+                link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key())
+                link_list = link_query.fetch()
+                for link in link_list:
+                    link.key.delete()
+                course.key.delete()
+            self.render_courses()
 
 class TextbooksPage(Handler):
-    def render_links(self, latest=None):
+    def render_links(self):
         textbook_query = TextbookTable.query()
-        links = textbook_query.fetch()
-        if(latest):
-            links.append(latest)
+        link_list = textbook_query.fetch()
+        links = [Link(link.link) for link in link_list]
         self.render("textbooks.html", links=links)
 
     def get(self):
         self.render_links()
 
     def post(self):
-        link_val = self.request.get("addtextbook")
+        isbn_num = self.request.get("addtextbook")
+        link_val = "www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" + isbn_num
+        data = urllib.urlopen("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn_num)
+        json_book = json.loads(str(data.read()))
+        book_name = json_book["items"][0]["volumeInfo"]["title"]
         if(link_val):
-            link = TextbookTable(link = link_val)
+<<<<<<< HEAD
+            link = TextbookTable(link = link_val, name = book_name, linkKey = link_val)
             link.put()
-            self.render_links(link)
+            link.linkKey = Link(link_val).key("TextbookTable")
+=======
+            link = TextbookTable(link = link_val, linkKey = link_val)
+            link.put()
+            link.linkKeey = Link(link_val).key("TextbookTable")
+>>>>>>> 09a8a053f18c100592755ec2a3b4b3d8275b9a84
+            link.put()
+            self.render_links()
+        elif "delete" in self.request.arguments()[0]:
+            remove_id = self.request.arguments()[0].replace("delete", "")
+            links = TextbookTable.query(TextbookTable.linkKey == remove_id)
+            for link in links:
+       	        link.key.delete()
+            self.render_links()
+
 
 class HousingPage(Handler):
-    def render_links(self, latest=None):
+    def render_links(self):
         housing_query = HousingTable.query()
-        links = housing_query.fetch()
-        if(latest):
-            links.append(latest)
+        link_list = housing_query.fetch()
+        links = [Link(link.link) for link in link_list]
         self.render("housing.html", links=links)
 
     def get(self):
@@ -136,16 +183,25 @@ class HousingPage(Handler):
     def post(self):
         link_val = self.request.get("addhousing")
         if(link_val):
-            link = HousingTable(link = link_val)
+            link = HousingTable(link = link_val, linkKey = link_val)
             link.put()
-            self.render_links(link)
+            link.linkKey = Link(link_val).key("HousingTable")
+            link.put()
+            self.render_links()
+        elif "delete" in self.request.arguments()[0]:
+            remove_id = self.request.arguments()[0].replace("delete", "")
+            links = HousingTable.query(HousingTable.linkKey == remove_id)
+            for link in links:
+       	        link.key.delete()
+            self.render_links()
 
 class ProcrastinationPage(Handler):
     def render_links(self, latest=None):
         pro_query = ProcrastinationTable.query()
-        links = pro_query.fetch()
+        link_list = pro_query.fetch()
+        links = [link.link for link in link_list]
         if(latest):
-            links.append(latest)
+            links.append(Link(latest.link))
         self.render("procrastination.html", links=links)
 
     def get(self):
