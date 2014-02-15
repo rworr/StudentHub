@@ -1,11 +1,20 @@
 import webapp2
 import jinja2
 import os
+import urllib
+import json
 
 from google.appengine.ext import ndb
 
 html_dir = os.path.join(os.path.dirname(__file__), 'html')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoescape = True)
+
+class Weather():
+    def __init__(self, city, country, temperature, weatherType):
+        self.city = city
+        self.country = country
+        self.temperature = temperature
+        self.weatherType = weatherType
 
 class Course():
     def __init__(self, name, links):
@@ -47,8 +56,17 @@ class ProcrastinationTable(ndb.Model):
     link = ndb.StringProperty(required = True)
 
 class MainPage(Handler):
+    def render_with_data(self):
+        data = urllib.urlopen("http://api.openweathermap.org/data/2.5/weather?q=Waterloo,ca")
+        json_weather = json.loads(str(data.read()))
+        city = json_weather["name"]
+        country = json_weather["sys"]["country"]
+        temperature = json_weather["main"]["temp"] - 273.15
+        weatherType = json_weather["weather"][0]["main"]
+        self.render("index.html", weather = Weather(city, country, temperature, weatherType))
+
     def get(self):
-        self.render("index.html")
+        self.render_with_data()
 
 class Link():
     def __init__(self, link, courseId = None):
