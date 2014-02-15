@@ -1,0 +1,18 @@
+Steps:
+	bookmarking
+		- links to pages
+		- add new link
+		- remove/edit link
+		
+		
+tabs for
+	- discussions
+	- books
+	- housing
+	- grades
+	- procrastination (easter egg)
+	
+	- twitter feed from your school
+	- weather
+	- classes for the day
+	- assignment deadlines (from learn?)
