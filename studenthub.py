@@ -13,6 +13,14 @@ from google.appengine.ext import ndb
 html_dir = os.path.join(os.path.dirname(__file__), 'html')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoescape = True)
 
+#headers for requests
+headers = { 'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0',
+	    'Connection':'keep-alive' }
+
+#setup cookies
+cj = cookielib.CookieJar()
+opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+
 class Weather():
     def __init__(self, city, country, temperature, weatherType, pic_link):
         self.city = city
@@ -101,39 +109,27 @@ class LoginPage(Handler):
         self.render("login.html")
 
     def post(self):
+	global cj, opener
         username = str(self.request.get("username"))
         password = str(self.request.get("password"))
 
-        url = 'http://cas.uwaterloo.ca/cas/login'
-        data = urllib.urlencode({'username': username,
-                'password': password,
-                'lt':'e1s1',
-                '_eventId':'submit',
-                'submit':'LOGIN'})
+	#setup for logon through UWaterloo's central authentication system
+	url = 'https://cas.uwaterloo.ca/cas/login'
+	data = urllib.urlencode({'username':username,
+		'password':password, #enter password to login
+		'lt':'e1s1',
+		'_eventId':'submit',
+		'submit':'LOGIN'})
 
-        #headers for requests
-        headers = { 'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0',
-                    'Connection':'keep-alive' }
+	#first request: GET to CAS, set up session cookies
+	req = urllib2.Request(url, headers=headers)
+	page = opener.open(req)
 
-        #setup cookies
-        cj = cookielib.CookieJar()
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+	#second request: POST to CAS, login
+	req = urllib2.Request(url, data, headers=headers)
+	page = opener.open(req)
 
-        #first request: GET to CAS, set up session cookies
-        req = urllib2.Request(url, headers=headers)
-        print req
-        page = opener.open(req)
-        """
-        #second request: POST to CAS, login
-        req = urllib2.Request(url, data, headers=headers)
-        page = opener.open(req)
-
-        output_file = 'script.html'
-        f = open(output_file, 'w')
-        f.write(page.read())
-        f.close()
-        """
-        self.render("login.html")
+        self.redirect('/')
 
 class Link():
     def __init__(self, link, name = "", courseId = None):
@@ -204,36 +200,11 @@ class CoursesPage(Handler):
 
 class TextbooksPage(Handler):
     def render_links(self):
+        global username, password
         textbook_query = TextbookTable.query()
         link_list = textbook_query.fetch()
         links = [Link(link.link, link.name) for link in link_list]
         self.render("textbooks.html", links=links)
-
-
-	#setup for logon through UWaterloo's central authentication system
-	url = 'https://cas.uwaterloo.ca/cas/login'
-	data = urllib.urlencode({'username':'rworr',
-		'password':'', #enter password to login
-		'lt':'e1s1',
-		'_eventId':'submit',
-		'submit':'LOGIN'})
-
-	#headers for requests
-	headers = { 'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0',
-		    'Connection':'keep-alive' }
-
-	#setup cookies
-	cj = cookielib.CookieJar()
-	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-
-	#first request: GET to CAS, set up session cookies
-	req = urllib2.Request(url, headers=headers)
-	page = opener.open(req)
-
-	#second request: POST to CAS, login
-	req = urllib2.Request(url, data, headers=headers)
-	page = opener.open(req)
-
 
 	#for booklook
 	url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search_student.html'
@@ -245,9 +216,6 @@ class TextbooksPage(Handler):
 	url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search.html'
 	data = urllib.urlencode({'mv_profile':'search_student',
 				 'searchterm':'1141'})
-
-	#for learn
-	#url = 'https://learn.uwaterloo.ca'
 
 	req = urllib2.Request(url, data, headers=headers)
 	page = opener.open(req)
