@@ -71,15 +71,13 @@ class MainPage(Handler):
         self.render_with_data()
 
 class Link():
-    def __init__(self, link, courseId = None):
+    def __init__(self, link, name, courseId = None):
         self.link = link
         self.courseId = courseId
+        self.name = name
 
     def key(self, table):
         return ndb.Key(table, self.link).id()
-
-    def Key(self, table):
-        return ndb.Key(table, self.link)
 
 class CoursesPage(Handler):
     def render_courses(self):
@@ -135,7 +133,7 @@ class TextbooksPage(Handler):
     def render_links(self):
         textbook_query = TextbookTable.query()
         link_list = textbook_query.fetch()
-        links = [Link(link.link) for link in link_list]
+        links = [Link(link.link, link.name) for link in link_list]
         self.render("textbooks.html", links=links)
 
     def get(self):
@@ -143,18 +141,19 @@ class TextbooksPage(Handler):
 
     def post(self):
         isbn_num = self.request.get("addtextbook")
-        link_val = "www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" + isbn_num
-        data = urllib.urlopen("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn_num)
-        json_book = json.loads(str(data.read()))
-        book_name = json_book["items"][0]["volumeInfo"]["title"]
-        if(link_val):
+        if(isbn_num):
+            link_val = "www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" + isbn_num
+            data = urllib.urlopen("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn_num)
+            json_book = json.loads(str(data.read()))
+            book_name = json_book["items"][0]["volumeInfo"]["title"]
             link = TextbookTable(link = link_val, name = book_name, linkKey = link_val)
             link.put()
-            link.linkKey = Link(link_val).key("TextbookTable")
+            link.linkKey = Link(link_val, "").key("TextbookTable")
             link.put()
             self.render_links()
         elif "delete" in self.request.arguments()[0]:
             remove_id = self.request.arguments()[0].replace("delete", "")
+            print remove_id
             links = TextbookTable.query(TextbookTable.linkKey == remove_id)
             for link in links:
        	        link.key.delete()
