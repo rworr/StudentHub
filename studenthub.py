@@ -316,10 +316,8 @@ class TextbooksPage(Handler):
             html = page.read()
             while "book_section\">" in html:
                 [course, html] = parse(html, book_section, "-")
-                while (((html.find(book_section) > html.find(book_info)) and
-                        book_section in html) or
-                        (book_section not in html and book_info in html)):
-	                if(html.find("Required Item") < html.find("author\">")):
+                while (((html.find(book_section) > html.find(book_info)) and book_section in html) or (book_section not in html and book_info in html)):
+                    if(html.find("Required Item") < html.find("author\">")):
                         needed = "\"Required\""
                     elif (html.find("Optional Item") < html.find("author\">")):
                         needed = "Optional!"
