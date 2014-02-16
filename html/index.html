@@ -51,14 +51,28 @@
 
         <h1><u>Your Dashboard</u></h1>
         <div class="col-md-6">
-        <h2>Weather</h2>
-        <p class="lead">
-          {{weather.city}}, {{weather.country}} <br/>
-          <img src="{{weather.pic_link}}"> <br/>
-          {{weather.temperature}} C <br/>
-          {{weather.weatherType}}
-        </p>
-      </div>
+          <h2>Weather</h2>
+          <p class="lead">
+            {{weather.city}}, {{weather.country}} <br/>
+            <img src="{{weather.pic_link}}"> <br/>
+            {{weather.temperature}} C <br/>
+            {{weather.weatherType}}
+          </p>
+          <h2>Today's Schedule</h2>
+            <h3>Monday February 17, 2014</h3>
+            <table style="width:300px">
+            <tbody><tr>
+              <td>8:30am - 9:50am</td>
+              <td><b>ECE 327</b></td> 
+              <td>in RCH 103</td>
+            </tr>
+            <tr>
+              <td>10:00am - 11:20am</td>
+              <td><b>ECE 351</b></td> 
+              <td>in RCH 103</td>
+            </tr>
+            </tbody></table>
+        </div>
 
         <div class="col-md-6">
           <h2>UW Twitter Feed</h2>
