@@ -154,13 +154,15 @@ def findin(html, start_match, end_match):
 
 
 class Book():
-    def __init__(self, title, course, author, sku, price, needed):
+    def __init__(self, title, course, author, sku, price, needed, amazon_price, amazon_link):
         self.title = title
         self.course = course
         self.author = author
         self.sku = sku
         self.price = price
         self.needed = needed
+        self.amazon_price = amazon_price
+        self.amazon_link = amazon_link
 
 class Weather():
     def __init__(self, city, country, temperature, weatherType, pic_link):
@@ -486,13 +488,11 @@ class TextbooksPage(Handler):
             book_info = "book_info\">"
 		
             books = []
-	    html = page.read()
+            html = page.read()
             while "book_section\">" in html:
                 [course, html] = parse(html, book_section, "-")
-                while (((html.find(book_section) > html.find(book_info)) and
-                        book_section in html) or
-                        (book_section not in html and book_info in html)):
-	            if(html.find("Required Item") < html.find("author\">")):
+                while (((html.find(book_section) > html.find(book_info)) and book_section in html) or (book_section not in html and book_info in html)):
+                    if(html.find("Required Item") < html.find("author\">")):
                         needed = "\"Required\""
                     elif (html.find("Optional Item") < html.find("author\">")):
                         needed = "Optional!"
@@ -501,7 +501,26 @@ class TextbooksPage(Handler):
                     [sku, html] = parse(html, "SKU:", "</span>")
                     [price, html] = parse(html, "Price:", "</span>")
                     if(sku != not_a_text):
-                        books.append(Book(title, course, author, sku, price, needed))
+                        #find it on amazon
+                        amazon_link = "http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" + sku
+                        search_page = urllib2.urlopen(amazon_link)
+                        search_html = search_page.read()
+                        #Get link to the first product
+                        [prod_link, search_html] = parse(search_html, "productTitle\"><a href=\"", "\">")
+                        if prod_link != "":
+                            prod_page = urllib2.urlopen(prod_link)
+                            prod_html = prod_page.read()
+                            [rent, a] = parse(prod_html, "class=\"rentPrice\">$", "</span>")
+                            [listp, b] = parse(prod_html, "class=\"listprice\">$", "</span>")
+                            if rent == "":
+                                amazon_price = listp
+                            else:
+                                amazon_price = rent
+                        else:
+                            amazon_price = -1
+                            prod_link = "#"
+
+                        books.append(Book(title, course, author, sku, price, needed, amazon_price, prod_link))
             self.render("textbooks.html", links=links, books = books)
 
     def get(self):

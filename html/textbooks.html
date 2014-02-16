@@ -53,8 +53,12 @@
           <li>Author: {{book.author}}</li>
           <li>Course: {{book.course}}</li>
         </ul>
-        <u>Places to buy</u>
-        <br>
+        <u>Prices:</u><br/>
+        UW BookStore: {{book.price}}<br/>
+        {% if book.amazon_price != -1 %}
+        <a href="{{book.amazon_link}}" target="_blank">Amazon</a>: {{book.amazon_price}}<br/>
+        {% endif %}
+        <br/>
         {% endfor %}
         </p>
         <p class="lead">
