@@ -45,12 +45,15 @@
 
       <div class="starter-template">
         <h1>Your Textbooks</h1>
+        <p>
+
+        </p>
         <p class="lead">
           {% for link in links %}
             <form method="post">
               <input type="submit" value="x" 
                      name="delete{{link.key("TextbookTable")}}">
-              <a href="http:\\{{link.link}}" target="_blank">{{link.name}}</a>
+              <a href="{{link.link}}" target="_blank">{{link.name}}</a>
             </form>
             <br>
           {% endfor %}

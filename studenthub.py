@@ -146,13 +146,15 @@ class Link():
         self.link = link
         self.courseId = courseId
         self.name = name
-        print self.name
+        if "http://" not in link and "https://" not in link:
+            self.link = "http://" + self.link
         if(self.name == ""):
             self.name = link
             """
             page = urllib2.urlopen("http://" + link).read()
             self.name = page[page.find("<title>")+len("<title>"):page.find("</title>")]
             """
+        print self.link
 
     def key(self, table):
         return ndb.Key(table, self.link).id()
@@ -166,7 +168,6 @@ class CoursesPage(Handler):
             link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key())
             link_list = link_query.fetch()
             links = [Link(link.link) for link in link_list]
-            print links
             courses.append(Course(course.name, links))
         self.render("courses.html", courses=courses)
 
