@@ -188,6 +188,10 @@ class LoginPage(Handler):
         else:
             self.render("login.html", error="You don't even go here...")
 
+class LogoutPage(Handler):
+    def get(self):
+        self.redirect('/login')
+
 class Link():
     def __init__(self, link, name = "", courseId = None):
         self.link = link
@@ -399,6 +403,7 @@ class ProcrastinationPage(Handler):
 
 application = webapp2.WSGIApplication([
                   ('/login', LoginPage),
+                  ('/logout', LogoutPage),
                   ('/', MainPage),
                   ('/courses', CoursesPage),
                   ('/textbooks', TextbooksPage),
