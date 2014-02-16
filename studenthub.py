@@ -33,12 +33,13 @@ def check_secure(secure_val):
         return val
 
 class Book():
-    def __init__(self, title, course, author, sku, price):
+    def __init__(self, title, course, author, sku, price, needed):
         self.title = title
         self.course = course
         self.author = author
         self.sku = sku
         self.price = price
+        self.needed = needed
 
 class Weather():
     def __init__(self, city, country, temperature, weatherType, pic_link):
@@ -276,54 +277,58 @@ class TextbooksPage(Handler):
         link_list = textbook_query.fetch()
         links = [Link(link.link, link.name) for link in link_list]
 
-        #for booklook
-        url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search_student.html'
-        #access the booklook search page, setup cookies for booklook
-        req = urllib2.Request(url, headers=headers)
-        page = openers[self.user].open(req)
+        if self.user not in openers:
+            self.logout()
+            self.redirect('/login')
+        else:
+            #for booklook
+            url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search_student.html'
+            #access the booklook search page, setup cookies for booklook
+            req = urllib2.Request(url, headers=headers)
+            page = openers[self.user].open(req)
 
-        #hardcoded values for POST request for book info
-        url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search.html'
-        data = urllib.urlencode({'mv_profile':'search_student',
-                                 'searchterm':'1141'})
+            #hardcoded values for POST request for book info
+            url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search.html'
+            data = urllib.urlencode({'mv_profile':'search_student',
+                                     'searchterm':'1141'})
 
-        req = urllib2.Request(url, data, headers=headers)
-        page = openers[self.user].open(req)
+            req = urllib2.Request(url, data, headers=headers)
+            page = openers[self.user].open(req)
 
-        def start_idx(html, match):
-            if match in html:
-                return html.find(match) + len(match)
-            return -1
+            def start_idx(html, match):
+                if match in html:
+                    return html.find(match) + len(match)
+                return -1
 
-        def parse(html, start_match, end_match):
-            start = start_idx(html, start_match)
-            end = html.find(end_match, start)
-            val = html[start:end].strip()
-            return val, html[end:]
+            def parse(html, start_match, end_match):
+                start = start_idx(html, start_match)
+                end = html.find(end_match, start)
+                val = html[start:end].strip()
+                return val, html[end:]
 
-        book_section = "book_section\">"
-        book_info = "book_info\">"
+        
+            book_section = "book_section\">"
+            book_info = "book_info\">"
 
-        books = []
-        html = page.read()
-        while "book_section\">" in html:
-            [course, html] = parse(html, book_section, "-")
-            while (((html.find(book_section) > html.find(book_info)) and
-                    book_section in html) or
-                  (book_section not in html and book_info in html)):
-                if(html.find("Required Item") < html.find("author\">")):
-                    print "\t\"Required\""
-                elif (html.find("Optional Item") < html.find("author\">")):
-                    print "\tOptional!"
-
-                [author, html] = parse(html, "author\">", "</span>")
-                [title, html] = parse(html, "title\">", "</span>")
-                [sku, html] = parse(html, "SKU:", "</span>")
-                [price, html] = parse(html, "Price:", "</span>")
-                if(sku != not_a_text):
-                    books.append(Book(title, course, author, sku, price))
-
-        self.render("textbooks.html", links=links, books = books)
+		
+            books = []
+	    html = page.read()
+            while "book_section\">" in html:
+                [course, html] = parse(html, book_section, "-")
+                while (((html.find(book_section) > html.find(book_info)) and
+                        book_section in html) or
+                        (book_section not in html and book_info in html)):
+	            if(html.find("Required Item") < html.find("author\">")):
+                        needed = "\"Required\""
+                    elif (html.find("Optional Item") < html.find("author\">")):
+                        needed = "Optional!"
+                    [author, html] = parse(html, "author\">", "</span>")
+                    [title, html] = parse(html, "title\">", "</span>")
+                    [sku, html] = parse(html, "SKU:", "</span>")
+                    [price, html] = parse(html, "Price:", "</span>")
+                    if(sku != not_a_text):
+                        books.append(Book(title, course, author, sku, price, needed))
+            self.render("textbooks.html", links=links, books = books)
 
     def get(self):
         if self.loggedin():

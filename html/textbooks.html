@@ -49,9 +49,9 @@
 
       <div class="starter-template">
         <h1>Your Textbooks</h1><br>
-        <p>
         {% for book in books %}
         <h4>{{book.title}}</h4>
+        <p>{{book.needed}}
         <ul>
           <li>Author: {{book.author}}</li>
           <li>Course: {{book.course}}</li>
