@@ -33,7 +33,7 @@ def check_secure(secure_val):
         return val
 
 class Book():
-    def __init__(self, title, course, author, sku, price, needed, amazon_price):
+    def __init__(self, title, course, author, sku, price, needed, amazon_price, amazon_link):
         self.title = title
         self.course = course
         self.author = author
@@ -41,6 +41,7 @@ class Book():
         self.price = price
         self.needed = needed
         self.amazon_price = amazon_price
+        self.amazon_link = amazon_link
 
 class Weather():
     def __init__(self, city, country, temperature, weatherType, pic_link):
