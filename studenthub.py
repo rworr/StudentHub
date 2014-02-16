@@ -33,13 +33,14 @@ def check_secure(secure_val):
         return val
 
 class Book():
-    def __init__(self, title, course, author, sku, price, needed):
+    def __init__(self, title, course, author, sku, price, needed, amazon_price):
         self.title = title
         self.course = course
         self.author = author
         self.sku = sku
         self.price = price
         self.needed = needed
+        self.amazon_price = amazon_price
 
 class Weather():
     def __init__(self, city, country, temperature, weatherType, pic_link):
@@ -312,13 +313,13 @@ class TextbooksPage(Handler):
 
 		
             books = []
-	    html = page.read()
+            html = page.read()
             while "book_section\">" in html:
                 [course, html] = parse(html, book_section, "-")
                 while (((html.find(book_section) > html.find(book_info)) and
                         book_section in html) or
                         (book_section not in html and book_info in html)):
-	            if(html.find("Required Item") < html.find("author\">")):
+	                if(html.find("Required Item") < html.find("author\">")):
                         needed = "\"Required\""
                     elif (html.find("Optional Item") < html.find("author\">")):
                         needed = "Optional!"
@@ -327,7 +328,22 @@ class TextbooksPage(Handler):
                     [sku, html] = parse(html, "SKU:", "</span>")
                     [price, html] = parse(html, "Price:", "</span>")
                     if(sku != not_a_text):
-                        books.append(Book(title, course, author, sku, price, needed))
+                        #find it on amazon
+                        amazon_link = "www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" + sku
+                        page = urllib2.urlopen(url)
+                        html = page.read()
+                        #Get link to the first product
+                        [link, html] = parse(html, "productTitle\"><a href=\"", "\">")
+                        page = urllib2.urlopen(link)
+                        html = page.read()
+                        [rent, a] = parse(html, "class=\"rentPrice\">$", "</span>")
+                        [listp, b] = parse(html, "class=\"listprice\">$", "</span>")
+                        if rent == "":
+                            amazon_price = listp
+                        else:
+                            amazon_price = rent
+
+                        books.append(Book(title, course, author, sku, price, needed, amazon_price))
             self.render("textbooks.html", links=links, books = books)
 
     def get(self):
