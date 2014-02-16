@@ -66,7 +66,7 @@ def createClasses(classes):
     classlist = []
     for c in classes:
         location = c[0]
-        if c[1] != '&nbsp;':
+        if c[1] != '&nbsp;' and 'TBA' not in c:
             temp = c[1].split('-')
             [start, end_time] = [temp[0], temp[1]]
             temp = start.split()
@@ -91,8 +91,6 @@ def createClasses(classes):
                              time.strptime(end_date.strip(), "%m/%d/%Y"),
                              location.strip()))
                     day = day[2:]
-    for c in classlist:
-        print c
     return classlist
 
 class Class():
@@ -356,86 +354,90 @@ class LoginPage(Handler):
         #setup cookies
         cj = cookielib.CookieJar()
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+        try:  
+		#here open url  
+		#setup for logon through UWaterloo's central authentication system
+		url = 'https://cas.uwaterloo.ca/cas/login'
+		data = urllib.urlencode({'username':username,
+			'password':password, #enter password to login
+			'lt':'e1s1',
+			'_eventId':'submit',
+			'submit':'LOGIN'})
 
-        #setup for logon through UWaterloo's central authentication system
-        url = 'https://cas.uwaterloo.ca/cas/login'
-        data = urllib.urlencode({'username':username,
-                'password':password, #enter password to login
-                'lt':'e1s1',
-                '_eventId':'submit',
-                'submit':'LOGIN'})
+		#first request: GET to CAS, set up session cookies
+		req = urllib2.Request(url, headers=headers)
+		page = opener.open(req)
 
-        #first request: GET to CAS, set up session cookies
-        req = urllib2.Request(url, headers=headers)
-        page = opener.open(req)
+		#second request: POST to CAS, login
+		req = urllib2.Request(url, data, headers=headers)
+		page = opener.open(req)
 
-        #second request: POST to CAS, login
-        req = urllib2.Request(url, data, headers=headers)
-        page = opener.open(req)
+		result = page.read()
+		if "You have successfully logged into the University of Waterloo Central Authentication Service" in result:
+		    self.login(username)
 
-        result = page.read()
-        if "You have successfully logged into the University of Waterloo Central Authentication Service" in result:
-            self.login(username)
+		    #setup for logon through Quest to get schedule
+		    url = 'https://quest.pecs.uwaterloo.ca/psp/SS/?cmd=login&languageCd=ENG'
+		    data = urllib.urlencode({'userid':username, 'pwd':password})
 
-            #setup for logon through Quest to get schedule
-            url = 'https://quest.pecs.uwaterloo.ca/psp/SS/?cmd=login&languageCd=ENG'
-            data = urllib.urlencode({'userid':username, 'pwd':password})
+		    # POST to login to quest
+		    req = urllib2.Request(url, data, headers=headers)
+		    page = opener.open(req)
 
-            # POST to login to quest
-            req = urllib2.Request(url, data, headers=headers)
-            page = opener.open(req)
-
-            # GET classes
-            url = 'https://quest.pecs.uwaterloo.ca/psc/SS/ACADEMIC/SA/c/SA_LEARNER_SERVICES.SSR_SSENRL_LIST.GBL?Page=SSR_SSENRL_LIST&Action=A&ExactKeys=Y&TargetFrameName=None'
-            req = urllib2.Request(url, headers=headers)
-            page = opener.open(req) 
-            html = page.read()
+		    # GET classes
+		    url = 'https://quest.pecs.uwaterloo.ca/psc/SS/ACADEMIC/SA/c/SA_LEARNER_SERVICES.SSR_SSENRL_LIST.GBL?Page=SSR_SSENRL_LIST&Action=A&ExactKeys=Y&TargetFrameName=None'
+		    req = urllib2.Request(url, headers=headers)
+		    page = opener.open(req) 
+		    html = page.read()
 
 
-            class_name_start_match = "class='PAGROUPDIVIDER'  align='left'>"
-            class_nbr_match = "id='DERIVED_CLS_DTL_CLASS_NBR$"
-            class_time_match = "id='MTG_SCHED$"
-            courses = []
-            while class_name_start_match in html:
-                [course_name, html] = parse(html, class_name_start_match, "</td>")
-                course = CourseInfo(course_name)
-                while (((html.find(class_name_start_match) > html.find(class_nbr_match)) and 
-                       class_name_start_match in html) or
-                       (class_name_start_match not in html and class_nbr_match in html)):
-                    html = html[html.find("Class Section"):]
-                    [section, html] = parse(html, "class='PSHYPERLINK' >", "</a>")
-                    [component, html] = parse(html, "id='MTG_COMP$", "</span>")
-                    component = component[component.find('>')+1:]
-                    classes = []
-                    [time, html] = parse(html, class_time_match, "</span>")
-                    time = time[time.find('>')+1:]
-                    [room, html] = parse(html, "id='MTG_LOC$", "</span>")
-                    room = room[room.find('>')+1:]
-                    [instructor, html] = parse(html, "id='DERIVED_CLS_DTL_SSR_INSTR_LONG$", "</span>")
-                    instructor = instructor[instructor.find('>')+1:]
-                    [dates, html] = parse(html, "id='MTG_DATES$", "</span>")
-                    dates = dates[dates.find('>')+1:]
-                    classes.append([room, time, dates])
-                    while (html.find(class_name_start_match) > html.find(class_nbr_match)):
-                        number = findin(html, class_nbr_match, "</span>") 
-                        number = number[number.find('>')+1:]
-                        if number != '&nbsp;':
-                            break;
-                        [time, html] = parse(html, class_time_match, "</span>")
-                        time = time[time.find('>')+1:]
-                        [room, html] = parse(html, "id='MTG_LOC$", "</span>")
-                        room = room[room.find('>')+1:]
-                        [dates, html] = parse(html, "id='MTG_DATES$", "</span>")
-                        dates = dates[dates.find('>')+1:]
-                        classes.append([room, time, dates])
-                    course.addClass(component, section, instructor, classes)
-                courses.append(course)
-            userclasses[username] = courses
-            jars[username] = cj
-            openers[username] = opener
-            self.redirect('/')
-        else:
-            self.render("login.html", error="You don't even go here...")
+		    class_name_start_match = "class='PAGROUPDIVIDER'  align='left'>"
+		    class_nbr_match = "id='DERIVED_CLS_DTL_CLASS_NBR$"
+		    class_time_match = "id='MTG_SCHED$"
+		    courses = []
+		    while class_name_start_match in html:
+			[course_name, html] = parse(html, class_name_start_match, "</td>")
+			course = CourseInfo(course_name)
+			while (((html.find(class_name_start_match) > html.find(class_nbr_match)) and 
+			       class_name_start_match in html) or
+			       (class_name_start_match not in html and class_nbr_match in html)):
+			    html = html[html.find("Class Section"):]
+			    [section, html] = parse(html, "class='PSHYPERLINK' >", "</a>")
+			    [component, html] = parse(html, "id='MTG_COMP$", "</span>")
+			    component = component[component.find('>')+1:]
+			    classes = []
+			    [time, html] = parse(html, class_time_match, "</span>")
+			    time = time[time.find('>')+1:]
+			    [room, html] = parse(html, "id='MTG_LOC$", "</span>")
+			    room = room[room.find('>')+1:]
+			    [instructor, html] = parse(html, "id='DERIVED_CLS_DTL_SSR_INSTR_LONG$", "</span>")
+			    instructor = instructor[instructor.find('>')+1:]
+			    [dates, html] = parse(html, "id='MTG_DATES$", "</span>")
+			    dates = dates[dates.find('>')+1:]
+			    classes.append([room, time, dates])
+			    while (html.find(class_name_start_match) > html.find(class_nbr_match)):
+				number = findin(html, class_nbr_match, "</span>") 
+				number = number[number.find('>')+1:]
+				if number != '&nbsp;':
+				    break;
+				[time, html] = parse(html, class_time_match, "</span>")
+				time = time[time.find('>')+1:]
+				[room, html] = parse(html, "id='MTG_LOC$", "</span>")
+				room = room[room.find('>')+1:]
+				[dates, html] = parse(html, "id='MTG_DATES$", "</span>")
+				dates = dates[dates.find('>')+1:]
+				classes.append([room, time, dates])
+			    course.addClass(component, section, instructor, classes)
+			courses.append(course)
+		    userclasses[username] = courses
+		    jars[username] = cj
+		    openers[username] = opener
+		    self.redirect('/')
+		else:
+		    self.render("login.html", error="You don't even go here...")
+        except urllib2.HTTPError:  
+            pass 
+
 
 class LogoutPage(Handler):
     def get(self):
@@ -594,7 +596,6 @@ class TextbooksPage(Handler):
             self.render_links()
         elif "delete" in self.request.arguments()[0]:
             remove_id = self.request.arguments()[0].replace("delete", "")
-            print remove_id
             links = TextbookTable.query(TextbookTable.linkKey == remove_id, TextbookTable.username == self.user)
             for link in links:
                 link.key.delete()
