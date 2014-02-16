@@ -44,9 +44,17 @@
     <div class="container">
 
       <div class="starter-template">
-        <h1>Your Textbooks</h1>
+        <h1>Your Textbooks</h1><br>
         <p>
-
+        {% for book in books %}
+        <h4>{{book.title}}</h4>
+        <ul>
+          <li>Author: {{book.author}}</li>
+          <li>Course: {{book.course}}</li>
+        </ul>
+        <u>Places to buy</u>
+        <br>
+        {% endfor %}
         </p>
         <p class="lead">
           {% for link in links %}
