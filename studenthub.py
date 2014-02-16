@@ -7,6 +7,7 @@ import urllib
 import cookielib
 import re
 import hmac
+from cookielib import Cookie, CookieJar
 
 from google.appengine.api import users
 from google.appengine.ext import ndb
@@ -16,6 +17,9 @@ secret_code = open('ourlittlesecret.secret', 'r').read().strip()
 
 html_dir = os.path.join(os.path.dirname(__file__), 'html')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoescape = True)
+
+jars = {}
+openers = {}
 
 #headers for requests
 headers = { 'Connection':'keep-alive' }
@@ -157,7 +161,7 @@ class LoginPage(Handler):
         self.render("login.html")
 
     def post(self):
-        global cj, opener
+        global jars, openers
         username = str(self.request.get("username"))
         password = str(self.request.get("password"))
 
@@ -182,9 +186,10 @@ class LoginPage(Handler):
         page = opener.open(req)
 
         result = page.read()
-        print result
         if "You have successfully logged into the University of Waterloo Central Authentication Service" in result:
             self.login(username)
+            jars[username] = cj
+            openers[username] = opener
             self.redirect('/')
         else:
             self.render("login.html", error="You don't even go here...")
@@ -252,7 +257,7 @@ class CoursesPage(Handler):
             remove_id = self.request.arguments()[0].replace("deletecourselink", "")
             links = CourseLinkTable.query(CourseLinkTable.username == self.user, CourseLinkTable.linkKey == remove_id)
             for link in links:
-                       link.key.delete()
+                link.key.delete()
             self.render_courses()
         elif "deletecourse" in self.request.arguments()[0]:
             remove_id = self.request.arguments()[0].replace("deletecourse", "")
@@ -270,14 +275,12 @@ class TextbooksPage(Handler):
         textbook_query = TextbookTable.query(TextbookTable.username == self.user)
         link_list = textbook_query.fetch()
         links = [Link(link.link, link.name) for link in link_list]
-        self.render("textbooks.html")
 
-	"""
         #for booklook
         url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search_student.html'
         #access the booklook search page, setup cookies for booklook
         req = urllib2.Request(url, headers=headers)
-        page = opener.open(req)
+        page = openers[self.user].open(req)
 
         #hardcoded values for POST request for book info
         url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search.html'
@@ -285,7 +288,7 @@ class TextbooksPage(Handler):
                                  'searchterm':'1141'})
 
         req = urllib2.Request(url, data, headers=headers)
-        page = opener.open(req)
+        page = openers[self.user].open(req)
 
         def start_idx(html, match):
             if match in html:
@@ -321,7 +324,6 @@ class TextbooksPage(Handler):
                     books.append(Book(title, course, author, sku, price))
 
         self.render("textbooks.html", links=links, books = books)
-        """
 
     def get(self):
         if self.loggedin():
