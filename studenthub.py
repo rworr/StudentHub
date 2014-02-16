@@ -329,8 +329,8 @@ class TextbooksPage(Handler):
                     [price, html] = parse(html, "Price:", "</span>")
                     if(sku != not_a_text):
                         #find it on amazon
-                        amazon_link = "www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" + sku
-                        page = urllib2.urlopen(url)
+                        amazon_link = "http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" + sku
+                        page = urllib2.urlopen(amazon_link)
                         html = page.read()
                         #Get link to the first product
                         [link, html] = parse(html, "productTitle\"><a href=\"", "\">")
