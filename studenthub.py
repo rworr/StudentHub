@@ -333,7 +333,6 @@ class TextbooksPage(Handler):
                         search_html = search_page.read()
                         #Get link to the first product
                         [prod_link, search_html] = parse(search_html, "productTitle\"><a href=\"", "\">")
-                        amazon_price = -1
                         if prod_link != "":
                             prod_page = urllib2.urlopen(prod_link)
                             prod_html = prod_page.read()
@@ -343,8 +342,11 @@ class TextbooksPage(Handler):
                                 amazon_price = listp
                             else:
                                 amazon_price = rent
+                        else:
+                            amazon_price = -1
+                            prod_link = "#"
 
-                        books.append(Book(title, course, author, sku, price, needed, amazon_price))
+                        books.append(Book(title, course, author, sku, price, needed, amazon_price, prod_link))
             self.render("textbooks.html", links=links, books = books)
 
     def get(self):
