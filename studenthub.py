@@ -7,6 +7,8 @@ import urllib
 import cookielib
 import re
 import hmac
+import time
+import datetime
 from cookielib import Cookie, CookieJar
 
 from google.appengine.api import users
@@ -20,6 +22,7 @@ jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoe
 
 jars = {}
 openers = {}
+userclasses = {}
 
 #headers for requests
 headers = { 'Connection':'keep-alive' }
@@ -31,6 +34,124 @@ def check_secure(secure_val):
     val = secure_val.split('|')[0]
     if secure_val == secure(val):
         return val
+
+def start_idx(html, match):
+    if match in html:
+        return html.find(match) + len(match)
+    return -1
+
+def parse(html, start_match, end_match):
+    start = start_idx(html, start_match)
+    end = html.find(end_match, start)
+    val = html[start:end].strip()
+    return val, html[end:]
+
+def createClasses(classes):
+    classlist = []
+    for c in classes:
+        location = c[0]
+        if c[1] != '&nbsp;':
+            temp = c[1].split('-')
+            [start, end_time] = [temp[0], temp[1]]
+            temp = start.split()
+            [day, start_time] = [temp[0], temp[1]]
+            temp = c[2].split('-')
+            [start_date, end_date] = [temp[0], temp[1]]
+            classlist.append(Class(day.strip(), start_time.strip(),
+                             end_time.strip(), 
+                             time.strptime(start_date.strip(), "%m/%d/%Y"),
+                             time.strptime(end_date.strip(), "%m/%d/%Y"),
+                             location.strip()))
+    return classlist
+
+class Class():
+    def __init__(self, day, start_time, end_time, start_date, end_date, location):
+        self.day = day
+        self.start_time = start_time
+        self.end_time = end_time
+        self.start_date = start_date
+        self.end_date = end_date
+        self.location = location
+
+    def __str__(self):
+        return ('%s %s-%s, %s-%s in %s' % 
+                (self.day, self.start_time, self.end_time, 
+                 self.start_date, self.end_date, self.location))
+
+    def classOn(self, date):
+        print date.year
+        return (date.year >= self.start_date.year and 
+                date.year <= self.end_date.year and
+                date.month >= self.start_date.month and
+                date.month <= self.end_date.month and
+                date.day >= self.start_date.day and
+                date.day <= self.end_date.day)
+
+class ClassInfo():
+    def __init__(self, component, section, instructor, classes):
+        self.component = component
+        self.section = section
+        self.classes = createClasses(classes)
+        self.instructor = instructor
+
+    def createWithClasses(self, component, section, instructor, classes):
+        ci = ClassInfo(component, section, instructor, "")
+        ci.classes = classes
+        return ci
+
+    def __str__(self):
+         result = '\t%s: %s-%s' % (self.instructor, self.component, self.section)
+         for c in self.classes:
+             result = '\n\t\t' + str(c)
+         return result
+
+    def classOn(self, date):
+         classes = []
+         for c in self.classes:
+             if c.classOn(date):
+                 classes.append(c)
+         if len(classes) > 0:
+             return self.createWithClasses(self.component, self.section, self.instructor, classes)
+         return None
+ 
+class CourseInfo():
+    def __init__(self, name):
+        self.name = name
+        self.classes = []
+
+    def addClass(self, component, section, instructor, classes):
+        self.classes.append(ClassInfo(component, section, instructor, classes))
+
+    def classOn(self, date):
+        classes = []
+        for c in self.classes:
+            co = c.classOn(date)
+            if co != None:
+                classes.append(co)
+        return classes
+
+    def __str__(self):
+        result = "\n" + self.name
+        for classInfo in self.classes:
+            result += "\n\t" + str(classInfo)
+        return result
+    
+def start_idx(html, match):
+    if match in html:
+        return html.find(match) + len(match)
+    return -1
+
+def parse(html, start_match, end_match):
+    start = start_idx(html, start_match)
+    end = html.find(end_match, start)
+    val = html[start:end].strip()
+    return val, html[end:]
+
+def findin(html, start_match, end_match):
+    start = start_idx(html, start_match)
+    end = html.find(end_match,start)
+    return html[start:end].strip()
+
 
 class Book():
     def __init__(self, title, course, author, sku, price, needed):
@@ -124,35 +245,46 @@ class ProcrastinationTable(ndb.Model):
 
 class MainPage(Handler):
     def render_with_data(self):
-        data = urllib2.urlopen("http://api.openweathermap.org/data/2.5/weather?q=Waterloo,ca")
-        json_weather = json.loads(str(data.read()))
-        city = json_weather["name"]
-        country = json_weather["sys"]["country"]
-        temperature = json_weather["main"]["temp"] - 273.15
-        weatherType = json_weather["weather"][0]["main"]
-
-        
-        code = json_weather["weather"][0]["id"]
-        if code > 199 and code < 233:
-            pic_link = "http://openweathermap.org/img/w/11d.png"
-        elif (code > 299 and code < 322) or (code > 519 and code < 532):
-            pic_link = "http://openweathermap.org/img/w/09d.png"
-        elif (code > 499 and code < 505):
-            pic_link = "http://openweathermap.org/img/w/10d.png"
-        elif (code == 511) or (code > 599 and code < 623):
-            pic_link = "http://openweathermap.org/img/w/13d.png"
-        elif (code > 699 and code < 782):
-            pic_link = "http://openweathermap.org/img/w/50d.png"
-        elif code == 800:
-            pic_link = "http://openweathermap.org/img/w/01d.png"
-        elif code == 801:
-            pic_link = "http://openweathermap.org/img/w/02d.png"
-        elif code == 802 or code == 803:
-            pic_link = "http://openweathermap.org/img/w/03d.png"
+        if self.user not in userclasses:
+            self.logout()
+            self.redirect('/login')
         else:
-            pic_link = "http://openweathermap.org/img/w/04d.png"
+            data = urllib2.urlopen("http://api.openweathermap.org/data/2.5/weather?q=Waterloo,ca")
+            json_weather = json.loads(str(data.read()))
+            city = json_weather["name"]
+            country = json_weather["sys"]["country"]
+            temperature = json_weather["main"]["temp"] - 273.15
+            weatherType = json_weather["weather"][0]["main"]
 
-        self.render("index.html", weather = Weather(city, country, temperature, weatherType, pic_link))
+            code = json_weather["weather"][0]["id"]
+            if code > 199 and code < 233:
+                pic_link = "http://openweathermap.org/img/w/11d.png"
+            elif (code > 299 and code < 322) or (code > 519 and code < 532):
+                pic_link = "http://openweathermap.org/img/w/09d.png"
+            elif (code > 499 and code < 505):
+                pic_link = "http://openweathermap.org/img/w/10d.png"
+            elif (code == 511) or (code > 599 and code < 623):
+                pic_link = "http://openweathermap.org/img/w/13d.png"
+            elif (code > 699 and code < 782):
+                pic_link = "http://openweathermap.org/img/w/50d.png"
+            elif code == 800:
+                pic_link = "http://openweathermap.org/img/w/01d.png"
+            elif code == 801:
+                pic_link = "http://openweathermap.org/img/w/02d.png"
+            elif code == 802 or code == 803:
+                pic_link = "http://openweathermap.org/img/w/03d.png"
+            else:
+                pic_link = "http://openweathermap.org/img/w/04d.png"
+
+            classes = []
+            for course in userclasses[self.user]:
+                curdate = datetime.datetime.now()
+                maxdate = datetime.datetime.now() + datetime.timedelta(days=6)
+                while(len(classes) == 0 and curdate <= maxdate):
+                    classes = course.classOn(curdate)
+                    curdate += datetime.timedelta(days=1)
+            
+            self.render("index.html", weather = Weather(city, country, temperature, weatherType, pic_link))
 
     def get(self):
         if self.loggedin():
@@ -165,7 +297,7 @@ class LoginPage(Handler):
         self.render("login.html")
 
     def post(self):
-        global jars, openers
+        global jars, openers, userclasses
         username = str(self.request.get("username"))
         password = str(self.request.get("password"))
 
@@ -192,6 +324,61 @@ class LoginPage(Handler):
         result = page.read()
         if "You have successfully logged into the University of Waterloo Central Authentication Service" in result:
             self.login(username)
+
+            #setup for logon through Quest to get schedule
+            url = 'https://quest.pecs.uwaterloo.ca/psp/SS/?cmd=login&languageCd=ENG'
+            data = urllib.urlencode({'userid':username, 'pwd':password})
+
+            # POST to login to quest
+            req = urllib2.Request(url, data, headers=headers)
+            page = opener.open(req)
+
+            # GET classes
+            url = 'https://quest.pecs.uwaterloo.ca/psc/SS/ACADEMIC/SA/c/SA_LEARNER_SERVICES.SSR_SSENRL_LIST.GBL?Page=SSR_SSENRL_LIST&Action=A&ExactKeys=Y&TargetFrameName=None'
+            req = urllib2.Request(url, headers=headers)
+            page = opener.open(req) 
+            html = page.read()
+
+
+            class_name_start_match = "class='PAGROUPDIVIDER'  align='left'>"
+            class_nbr_match = "id='DERIVED_CLS_DTL_CLASS_NBR$"
+            class_time_match = "id='MTG_SCHED$"
+            courses = []
+            while class_name_start_match in html:
+                [course_name, html] = parse(html, class_name_start_match, "</td>")
+                course = CourseInfo(course_name)
+                while (((html.find(class_name_start_match) > html.find(class_nbr_match)) and 
+                       class_name_start_match in html) or
+                       (class_name_start_match not in html and class_nbr_match in html)):
+                    html = html[html.find("Class Section"):]
+                    [section, html] = parse(html, "class='PSHYPERLINK' >", "</a>")
+                    [component, html] = parse(html, "id='MTG_COMP$", "</span>")
+                    component = component[component.find('>')+1:]
+                    classes = []
+                    [time, html] = parse(html, class_time_match, "</span>")
+                    time = time[time.find('>')+1:]
+                    [room, html] = parse(html, "id='MTG_LOC$", "</span>")
+                    room = room[room.find('>')+1:]
+                    [instructor, html] = parse(html, "id='DERIVED_CLS_DTL_SSR_INSTR_LONG$", "</span>")
+                    instructor = instructor[instructor.find('>')+1:]
+                    [dates, html] = parse(html, "id='MTG_DATES$", "</span>")
+                    dates = dates[dates.find('>')+1:]
+                    classes.append([room, time, dates])
+                    while (html.find(class_name_start_match) > html.find(class_nbr_match)):
+                        number = findin(html, class_nbr_match, "</span>") 
+                        number = number[number.find('>')+1:]
+                        if number != '&nbsp;':
+                            break;
+                        [time, html] = parse(html, class_time_match, "</span>")
+                        time = time[time.find('>')+1:]
+                        [room, html] = parse(html, "id='MTG_LOC$", "</span>")
+                        room = room[room.find('>')+1:]
+                        [dates, html] = parse(html, "id='MTG_DATES$", "</span>")
+                        dates = dates[dates.find('>')+1:]
+                        classes.append([room, time, dates])
+                    course.addClass(component, section, instructor, classes)
+                courses.append(course)
+            userclasses[username] = courses
             jars[username] = cj
             openers[username] = opener
             self.redirect('/')
@@ -294,22 +481,9 @@ class TextbooksPage(Handler):
 
             req = urllib2.Request(url, data, headers=headers)
             page = openers[self.user].open(req)
-
-            def start_idx(html, match):
-                if match in html:
-                    return html.find(match) + len(match)
-                return -1
-
-            def parse(html, start_match, end_match):
-                start = start_idx(html, start_match)
-                end = html.find(end_match, start)
-                val = html[start:end].strip()
-                return val, html[end:]
-
         
             book_section = "book_section\">"
             book_info = "book_info\">"
-
 		
             books = []
 	    html = page.read()
