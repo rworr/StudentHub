@@ -19,9 +19,9 @@
 
   <body>
 
-    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="container">
-        <div class="navbar-header">
+        <div class="navbar-header pull-left">
           <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
             <span class="sr-only">Toggle navigation</span>
             <span class="icon-bar"></span>
@@ -30,8 +30,8 @@
           </button>
           <a class="navbar-brand" href="/">StudentHub</a>
         </div>
-        <div class="collapse navbar-collapse pull-left">
-          <ul class="nav navbar-nav">
+        <div class="navbar-collapse pull-left collapse in" style="height: auto;">
+          <ul class="nav navbar-nav pull-left">
             <li><a href="courses">Courses</a></li>
             <li><a href="textbooks">Textbooks</a></li>
             <li><a href="housing">Housing</a></li>
@@ -39,7 +39,7 @@
           </ul>
         </div><!--/.nav-collapse -->
 
-          <ul class="nav pull-right">
+          <ul class="nav navbar-nav pull-right">
             <li><a href="logout">Logout</a></li>
           </ul>
       </div>
@@ -48,18 +48,9 @@
     <div class="container">
 
       <div class="starter-template">
-
-        <h1><u>Your Dashboard</u></h1>
         <div class="col-md-6">
-          <h2>Weather</h2>
-          <p class="lead">
-            {{weather.city}}, {{weather.country}} <br/>
-            <img src="{{weather.pic_link}}"> <br/>
-            {{weather.temperature}} C <br/>
-            {{weather.weatherType}}
-          </p>
           <h2>Today's Schedule</h2>
-            <h3>Monday February 17, 2014</h3>
+            <h4>Monday February 17, 2014</h4>
             <table style="width:300px">
             <tbody><tr>
               <td>8:30am - 9:50am</td>
@@ -72,6 +63,14 @@
               <td>in RCH 103</td>
             </tr>
             </tbody></table>
+            <br/>
+          <h2>Weather</h2>
+          <p class="lead">
+            {{weather.city}}, {{weather.country}} <br/>
+            <img src="{{weather.pic_link}}"> <br/>
+            {{weather.temperature}} C <br/>
+            {{weather.weatherType}}
+          </p>
         </div>
 
         <div class="col-md-6">
