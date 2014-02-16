@@ -81,7 +81,7 @@ class Handler(webapp2.RequestHandler):
         self.user = ""
 
     def loggedin(self):
-        return self.read_secure_cookie('userid') == self.user
+        return self.read_secure_cookie('userid') == self.user and self.user != ""
 
     def initialize(self, *a, **kw):
         webapp2.RequestHandler.initialize(self, *a, **kw)
@@ -190,6 +190,7 @@ class LoginPage(Handler):
 
 class LogoutPage(Handler):
     def get(self):
+        self.logout()
         self.redirect('/login')
 
 class Link():
