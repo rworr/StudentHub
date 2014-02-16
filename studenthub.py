@@ -108,15 +108,18 @@ class CourseLinkTable(ndb.Model):
     link = ndb.StringProperty(required = True)
     courseId = ndb.StringProperty(required = True)
     linkKey = ndb.StringProperty(required = True)
+    name = ndb.StringProperty(required = True)
     username = ndb.StringProperty(required = True)
 
 class HousingTable(ndb.Model):
     link = ndb.StringProperty(required = True)
     linkKey = ndb.StringProperty(required = True)
     username = ndb.StringProperty(required = True)
+    name = ndb.StringProperty(required = True)
 
 class ProcrastinationTable(ndb.Model):
     link = ndb.StringProperty(required = True)
+    name = ndb.StringProperty(required = True)
     username = ndb.StringProperty(required = True)
 
 class MainPage(Handler):
@@ -209,11 +212,8 @@ class Link():
             self.link = "http://" + self.link
         if(self.name == ""):
             self.name = link
-            """
-            page = urllib2.urlopen("http://" + link).read()
+            page = urllib2.urlopen(self.link).read()
             self.name = page[page.find("<title>")+len("<title>"):page.find("</title>")]
-            """
-        print self.link
 
     def key(self, table):
         return ndb.Key(table, self.name).id()
@@ -226,7 +226,7 @@ class CoursesPage(Handler):
         for course in courses_list:
             link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key(), CourseLinkTable.username == self.user)
             link_list = link_query.fetch()
-            links = [Link(link.link) for link in link_list]
+            links = [Link(link.link, link.name) for link in link_list]
             courses.append(Course(course.name, links))
         self.render("courses.html", courses=courses)
 
@@ -249,7 +249,7 @@ class CoursesPage(Handler):
             link_val = self.request.get(idd)
             if(link_val):
                 idd = idd.replace("addcourselink", "")
-                link = CourseLinkTable(link = link_val, courseId = idd, linkKey = link_val, username = self.user)
+                link = CourseLinkTable(link = link_val, courseId = idd, linkKey = link_val, username = self.user, name = Link(link_val).name)
                 link.put()
                 link.linkKey = Link(link_val).key("CourseLinkTable")
                 link.put()
@@ -362,7 +362,7 @@ class HousingPage(Handler):
     def render_links(self):
         housing_query = HousingTable.query(HousingTable.username == self.user)
         link_list = housing_query.fetch()
-        links = [Link(link.link) for link in link_list]
+        links = [Link(link.link, link.name) for link in link_list]
         self.render("housing.html", links=links)
 
     def get(self):
@@ -375,7 +375,7 @@ class HousingPage(Handler):
     def post(self):
         link_val = self.request.get("addhousing")
         if(link_val):
-            link = HousingTable(link = link_val, linkKey = link_val, username = self.user)
+            link = HousingTable(link = link_val, linkKey = link_val, username = self.user, name = Link(link_val).name)
             link.put()
             link.linkKey = Link(link_val).key("HousingTable")
             link.put()
@@ -388,12 +388,10 @@ class HousingPage(Handler):
             self.render_links()
 
 class ProcrastinationPage(Handler):
-    def render_links(self, latest=None):
+    def render_links(self):
         pro_query = ProcrastinationTable.query(ProcrastinationTable.username == self.user)
         link_list = pro_query.fetch()
-        links = [link.link for link in link_list]
-        if(latest):
-            links.append(Link(latest.link))
+        links = [Link(link.link, link.name) for link in link_list]
         self.render("procrastination.html", links=links)
 
     def get(self):
@@ -405,9 +403,9 @@ class ProcrastinationPage(Handler):
     def post(self):
         link_val = self.request.get("addprocastination")
         if(link_val):
-            link = ProcrastinationTable(link = link_val, username = self.user)
+            link = ProcrastinationTable(link = link_val, username = self.user, name = Link(link_val).name)
             link.put()
-            self.render_links(link)
+            self.render_links()
 
 
 application = webapp2.WSGIApplication([
