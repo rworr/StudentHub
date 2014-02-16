@@ -213,7 +213,7 @@ class Link():
         if(self.name == ""):
             self.name = link
             page = urllib2.urlopen(self.link).read()
-            self.name = page[page.find("<title>")+len("<title>"):page.find("</title>")]
+            self.name = page[page.find(">", page.find("<title"))+len("<"):page.find("</title>")]
 
     def key(self, table):
         return ndb.Key(table, self.name).id()
