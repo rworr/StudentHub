@@ -56,7 +56,7 @@
         <u>Prices:</u><br/>
         UW BookStore: {{book.price}}<br/>
         {% if book.amazon_price != -1 %}
-        <a href="{{book.amazon_link}}">Amazon</a>: {{book.amazon_price}}<br/>
+        <a href="{{book.amazon_link}}" target="_blank">Amazon</a>: {{book.amazon_price}}<br/>
         {% endif %}
         <br/>
         {% endfor %}
