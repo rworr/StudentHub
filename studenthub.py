@@ -46,6 +46,22 @@ def parse(html, start_match, end_match):
     val = html[start:end].strip()
     return val, html[end:]
 
+def mapDay(day):
+    if day == 'M': return 0
+    elif day == 'T': return 1
+    elif day == 'W': return 2
+    elif day == 'Th': return 3
+    elif day == 'F': return 4
+    else: return 8
+
+def unmapDay(day):
+    if day == 0: return 'Monday'
+    elif day == 1: return 'Tuesday'
+    elif day == 2: return 'Wednesday'
+    elif day == 3: return 'Thursday'
+    elif day == 4: return 'Friday'
+    else: return ""
+
 def createClasses(classes):
     classlist = []
     for c in classes:
@@ -57,11 +73,24 @@ def createClasses(classes):
             [day, start_time] = [temp[0], temp[1]]
             temp = c[2].split('-')
             [start_date, end_date] = [temp[0], temp[1]]
-            classlist.append(Class(day.strip(), start_time.strip(),
+            while day != "":
+                if ((day[0] == 'M') or 
+                    ((day[0] == 'T') and (len(day) == 1 or day[1] != 'h')) or
+                    (day[0] == 'W') or
+                    (day[0] == 'F')):
+                    classlist.append(Class(day[0], start_time.strip(),
                              end_time.strip(), 
                              time.strptime(start_date.strip(), "%m/%d/%Y"),
                              time.strptime(end_date.strip(), "%m/%d/%Y"),
                              location.strip()))
+                    day = day[1:]
+                elif day[0:2] == 'Th':
+                    classlist.append(Class(day[0:1], start_time.strip(),
+                             end_time.strip(), 
+                             time.strptime(start_date.strip(), "%m/%d/%Y"),
+                             time.strptime(end_date.strip(), "%m/%d/%Y"),
+                             location.strip()))
+                    day = day[2:]
     return classlist
 
 class Class():
@@ -79,13 +108,17 @@ class Class():
                  self.start_date, self.end_date, self.location))
 
     def classOn(self, date):
-        print date.year
-        return (date.year >= self.start_date.year and 
-                date.year <= self.end_date.year and
-                date.month >= self.start_date.month and
-                date.month <= self.end_date.month and
-                date.day >= self.start_date.day and
-                date.day <= self.end_date.day)
+        return ((date.weekday() == mapDay(self.day)) and
+                ((date.year > self.start_date.tm_year) or
+                 ((date.year == self.start_date.tm_year) and
+                  ((date.month > self.start_date.tm_mon) or
+                   ((date.month == self.start_date.tm_mon) and
+                    (date.day >= self.start_date.tm_mday))))) and
+                ((date.year < self.end_date.tm_year) or
+                 ((date.year == self.end_date.tm_year) and
+                  ((date.month < self.end_date.tm_mon) or
+                   ((date.month == self.end_date.tm_mon) and
+                    (date.day <= self.end_date.tm_mday))))))
 
 class ClassInfo():
     def __init__(self, component, section, instructor, classes):
@@ -94,15 +127,15 @@ class ClassInfo():
         self.classes = createClasses(classes)
         self.instructor = instructor
 
-    def createWithClasses(self, component, section, instructor, classes):
-        ci = ClassInfo(component, section, instructor, "")
+    def createWithClasses(self, classes):
+        ci = ClassInfo(self.component, self.section, self.instructor, "")
         ci.classes = classes
         return ci
 
     def __str__(self):
          result = '\t%s: %s-%s' % (self.instructor, self.component, self.section)
          for c in self.classes:
-             result = '\n\t\t' + str(c)
+             result += '\n\t\t' + str(c)
          return result
 
     def classOn(self, date):
@@ -111,7 +144,7 @@ class ClassInfo():
              if c.classOn(date):
                  classes.append(c)
          if len(classes) > 0:
-             return self.createWithClasses(self.component, self.section, self.instructor, classes)
+             return self.createWithClasses(classes)
          return None
  
 class CourseInfo():
@@ -128,7 +161,11 @@ class CourseInfo():
             co = c.classOn(date)
             if co != None:
                 classes.append(co)
-        return classes
+        if len(classes) == 0:
+            return None
+        result = CourseInfo(self.name)
+        result.classes = classes
+        return result
 
     def __str__(self):
         result = "\n" + self.name
@@ -279,14 +316,24 @@ class MainPage(Handler):
                 pic_link = "http://openweathermap.org/img/w/04d.png"
 
             classes = []
-            for course in userclasses[self.user]:
-                curdate = datetime.datetime.now()
-                maxdate = datetime.datetime.now() + datetime.timedelta(days=6)
-                while(len(classes) == 0 and curdate <= maxdate):
-                    classes = course.classOn(curdate)
-                    curdate += datetime.timedelta(days=1)
-            
-            self.render("index.html", weather = Weather(city, country, temperature, weatherType, pic_link))
+            curdate = datetime.datetime.now()
+            maxdate = datetime.datetime.now() + datetime.timedelta(days=7)
+            while(len(classes) == 0 and curdate <= maxdate):
+                for course in userclasses[self.user]:
+                    newlist = course.classOn(curdate)
+                    if newlist != None:
+                        classes.append(newlist)
+                curdate += datetime.timedelta(days=1)
+
+            curdate = curdate - datetime.timedelta(days=1)
+            day = mapDay(classes[0].classes[0].classes[0].day)
+            if day == datetime.datetime.now().weekday():
+                dayString = "Today"
+            else:
+                dayString = unmapDay(day)
+            dateString = curdate.strftime("%A %B %d, %Y")
+
+            self.render("index.html", weather = Weather(city, country, temperature, weatherType, pic_link), dayString = dayString, classes = classes, dateString = dateString)
 
     def get(self):
         if self.loggedin():
