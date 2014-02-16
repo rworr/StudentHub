@@ -328,14 +328,14 @@ class TextbooksPage(Handler):
                     if(sku != not_a_text):
                         #find it on amazon
                         amazon_link = "http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" + sku
-                        page = urllib2.urlopen(amazon_link)
-                        html = page.read()
+                        search_page = urllib2.urlopen(amazon_link)
+                        search_html = search_page.read()
                         #Get link to the first product
-                        [link, html] = parse(html, "productTitle\"><a href=\"", "\">")
-                        page = urllib2.urlopen(link)
-                        html = page.read()
-                        [rent, a] = parse(html, "class=\"rentPrice\">$", "</span>")
-                        [listp, b] = parse(html, "class=\"listprice\">$", "</span>")
+                        [prod_link, search_html] = parse(search_html, "productTitle\"><a href=\"", "\">")
+                        prod_page = urllib2.urlopen(prod_link)
+                        prod_html = prod_page.read()
+                        [rent, a] = parse(prod_html, "class=\"rentPrice\">$", "</span>")
+                        [listp, b] = parse(prod_html, "class=\"listprice\">$", "</span>")
                         if rent == "":
                             amazon_price = listp
                         else:
