@@ -53,9 +53,9 @@
               {% for c2 in c1.classes %}
                 {% for c3 in c2.classes %}
                   <tr>
-                    <td>{{c3.start_time}} - {{c3.end_time}}</td>
-                    <td><b> {{c1.name}} </b></td> 
-                    <td> in {{c3.location|safe}} </td>
+                    <td style="padding-right:10px">{{c3.start_time}} - {{c3.end_time}}</td>
+                    <td><b> {{c1.name|safe}} </b></td> 
+                    <td style="padding-left:10px"> in {{c3.location|safe}} </td>
                   </tr>
                 {% endfor %}
               {% endfor %}

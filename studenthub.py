@@ -85,12 +85,14 @@ def createClasses(classes):
                              location.strip()))
                     day = day[1:]
                 elif day[0:2] == 'Th':
-                    classlist.append(Class(day[0:1], start_time.strip(),
+                    classlist.append(Class(day[0:2], start_time.strip(),
                              end_time.strip(), 
                              time.strptime(start_date.strip(), "%m/%d/%Y"),
                              time.strptime(end_date.strip(), "%m/%d/%Y"),
                              location.strip()))
                     day = day[2:]
+    for c in classlist:
+        print c
     return classlist
 
 class Class():
@@ -105,7 +107,8 @@ class Class():
     def __str__(self):
         return ('%s %s-%s, %s-%s in %s' % 
                 (self.day, self.start_time, self.end_time, 
-                 self.start_date, self.end_date, self.location))
+                 time.strftime("%m/%d/%Y", self.start_date) , 
+                 time.strftime("%m/%d/%Y", self.end_date) , self.location))
 
     def classOn(self, date):
         return ((date.weekday() == mapDay(self.day)) and
