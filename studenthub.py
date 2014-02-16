@@ -6,24 +6,27 @@ import json
 import urllib
 import cookielib
 import re
+import hmac
 
 from google.appengine.api import users
 from google.appengine.ext import ndb
 
-authenticated = False
-username = ""
 not_a_text = "281000002329B"
+secret_code = open('ourlittlesecret.secret', 'r').read().strip()
 
 html_dir = os.path.join(os.path.dirname(__file__), 'html')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(html_dir), autoescape = True)
 
 #headers for requests
-headers = { #'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0',
-            'Connection':'keep-alive' }
+headers = { 'Connection':'keep-alive' }
 
-#setup cookies
-cj = cookielib.CookieJar()
-opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+def secure(val):
+    return "%s|%s" % (val, hmac.new(secret_code, val).hexdigest())
+
+def check_secure(secure_val):
+    val = secure_val.split('|')[0]
+    if secure_val == secure(val):
+        return val
 
 class Book():
     def __init__(self, title, course, author, sku, price):
@@ -59,6 +62,30 @@ class Handler(webapp2.RequestHandler):
 
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
+
+    def set_secure_cookie(self, name, val):
+        cookie_val = secure(val)
+        self.response.headers.add_header('Set-Cookie',
+            '%s=%s; Path=/' % (name, cookie_val))
+
+    def read_secure_cookie(self, name):
+        cookie_val = self.request.cookies.get(name)
+        return cookie_val and check_secure(cookie_val)
+
+    def login(self, username):
+        self.set_secure_cookie('userid', username)
+        self.user = username
+
+    def logout(self):
+        self.response.headers.add_header('Set-Cookie', 'userid=; Path=/')
+        self.user = ""
+
+    def loggedin(self):
+        return self.read_secure_cookie('userid') == self.user
+
+    def initialize(self, *a, **kw):
+        webapp2.RequestHandler.initialize(self, *a, **kw)
+        self.user = self.read_secure_cookie('userid')
 
 class TextbookTable(ndb.Model):
     link = ndb.StringProperty(required = True)
@@ -119,19 +146,23 @@ class MainPage(Handler):
         self.render("index.html", weather = Weather(city, country, temperature, weatherType, pic_link))
 
     def get(self):
-        if not authenticated:
-            self.redirect('/login')
-        else:
+        if self.loggedin():
             self.render_with_data()
+        else:
+            self.redirect('/login')
 
 class LoginPage(Handler):
     def get(self):
         self.render("login.html")
 
     def post(self):
-        global cj, opener, authenticated, username
+        global cj, opener
         username = str(self.request.get("username"))
         password = str(self.request.get("password"))
+
+        #setup cookies
+        cj = cookielib.CookieJar()
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
 
         #setup for logon through UWaterloo's central authentication system
         url = 'https://cas.uwaterloo.ca/cas/login'
@@ -150,11 +181,12 @@ class LoginPage(Handler):
         page = opener.open(req)
 
         result = page.read()
-        authenticated = "You have successfully logged into the University of Waterloo Central Authentication Service" in result
-        if not authenticated:
-            self.render("login.html", error="You don't even go here...")
-        else:
+        print result
+        if "You have successfully logged into the University of Waterloo Central Authentication Service" in result:
+            self.login(username)
             self.redirect('/')
+        else:
+            self.render("login.html", error="You don't even go here...")
 
 class Link():
     def __init__(self, link, name = "", courseId = None):
@@ -176,26 +208,26 @@ class Link():
 
 class CoursesPage(Handler):
     def render_courses(self):
-        course_query = CourseTable.query(CourseTable.username==username)
+        course_query = CourseTable.query(CourseTable.username==self.user)
         courses_list = course_query.fetch()
         courses = []
         for course in courses_list:
-            link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key(), CourseLinkTable.username == username)
+            link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key(), CourseLinkTable.username == self.user)
             link_list = link_query.fetch()
             links = [Link(link.link) for link in link_list]
             courses.append(Course(course.name, links))
         self.render("courses.html", courses=courses)
 
     def get(self):
-        if not authenticated:
-            self.redirect('/login')
-        else:
+        if self.loggedin():
             self.render_courses()
+        else:
+            self.redirect('/login')
 
     def post(self):
         course_val = self.request.get("addcourse")
         if(course_val):
-            course = CourseTable(name = course_val, courseId = course_val, username = username)
+            course = CourseTable(name = course_val, courseId = course_val, username = self.user)
             course.put()
             course.courseId = Course(course_val, []).key()
             course.put()
@@ -205,22 +237,22 @@ class CoursesPage(Handler):
             link_val = self.request.get(idd)
             if(link_val):
                 idd = idd.replace("addcourselink", "")
-                link = CourseLinkTable(link = link_val, courseId = idd, linkKey = link_val, username = username)
+                link = CourseLinkTable(link = link_val, courseId = idd, linkKey = link_val, username = self.user)
                 link.put()
                 link.linkKey = Link(link_val).key("CourseLinkTable")
                 link.put()
                 self.render_courses()
         elif "deletecourselink" in self.request.arguments()[0]:
             remove_id = self.request.arguments()[0].replace("deletecourselink", "")
-            links = CourseLinkTable.query(CourseLinkTable.username == username, CourseLinkTable.linkKey == remove_id)
+            links = CourseLinkTable.query(CourseLinkTable.username == self.user, CourseLinkTable.linkKey == remove_id)
             for link in links:
                        link.key.delete()
             self.render_courses()
         elif "deletecourse" in self.request.arguments()[0]:
             remove_id = self.request.arguments()[0].replace("deletecourse", "")
-            courses = CourseTable.query(CourseTable.username == username, CourseTable.courseId == remove_id)
+            courses = CourseTable.query(CourseTable.username == self.user, CourseTable.courseId == remove_id)
             for course in courses:
-                link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key(), CourseLinkTable.username == username)
+                link_query = CourseLinkTable.query(CourseLinkTable.courseId==Course(course.name,[]).key(), CourseLinkTable.username == self.user)
                 link_list = link_query.fetch()
                 for link in link_list:
                     link.key.delete()
@@ -229,11 +261,12 @@ class CoursesPage(Handler):
 
 class TextbooksPage(Handler):
     def render_links(self):
-        global username, password
-        textbook_query = TextbookTable.query(TextbookTable.username == username)
+        textbook_query = TextbookTable.query(TextbookTable.username == self.user)
         link_list = textbook_query.fetch()
         links = [Link(link.link, link.name) for link in link_list]
+        self.render("textbooks.html")
 
+	"""
         #for booklook
         url = 'https://fortuna.uwaterloo.ca/auth-cgi-bin/cgiwrap/rsic/book/search_student.html'
         #access the booklook search page, setup cookies for booklook
@@ -282,12 +315,14 @@ class TextbooksPage(Handler):
                     books.append(Book(title, course, author, sku, price))
 
         self.render("textbooks.html", links=links, books = books)
+        """
 
     def get(self):
-        if not authenticated:
-            self.redirect('/login')
-        else:
+        if self.loggedin():
             self.render_links()
+        else:
+            self.redirect('/login')
+
 
     def post(self):
         isbn_num = self.request.get("addtextbook")
@@ -296,7 +331,7 @@ class TextbooksPage(Handler):
             data = urllib2.urlopen("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn_num)
             json_book = json.loads(str(data.read()))
             book_name = json_book["items"][0]["volumeInfo"]["title"]
-            link = TextbookTable(link = link_val, name = book_name, linkKey = link_val, username = username)
+            link = TextbookTable(link = link_val, name = book_name, linkKey = link_val, username = self.user)
             link.put()
             link.linkKey = Link(link_val).key("TextbookTable")
             link.put()
@@ -304,7 +339,7 @@ class TextbooksPage(Handler):
         elif "delete" in self.request.arguments()[0]:
             remove_id = self.request.arguments()[0].replace("delete", "")
             print remove_id
-            links = TextbookTable.query(TextbookTable.linkKey == remove_id, TextbookTable.username == username)
+            links = TextbookTable.query(TextbookTable.linkKey == remove_id, TextbookTable.username == self.user)
             for link in links:
                 link.key.delete()
             self.render_links()
@@ -312,35 +347,36 @@ class TextbooksPage(Handler):
 
 class HousingPage(Handler):
     def render_links(self):
-        housing_query = HousingTable.query(HousingTable.username == username)
+        housing_query = HousingTable.query(HousingTable.username == self.user)
         link_list = housing_query.fetch()
         links = [Link(link.link) for link in link_list]
         self.render("housing.html", links=links)
 
     def get(self):
-        if not authenticated:
-            self.redirect('/login')
-        else:
+        if self.loggedin():
             self.render_links()
+        else:
+            self.redirect('/login')
+
 
     def post(self):
         link_val = self.request.get("addhousing")
         if(link_val):
-            link = HousingTable(link = link_val, linkKey = link_val, username = username)
+            link = HousingTable(link = link_val, linkKey = link_val, username = self.user)
             link.put()
             link.linkKey = Link(link_val).key("HousingTable")
             link.put()
             self.render_links()
         elif "delete" in self.request.arguments()[0]:
             remove_id = self.request.arguments()[0].replace("delete", "")
-            links = HousingTable.query(HousingTable.linkKey == remove_id, HousingTable.username == username)
+            links = HousingTable.query(HousingTable.linkKey == remove_id, HousingTable.username == self.user)
             for link in links:
                        link.key.delete()
             self.render_links()
 
 class ProcrastinationPage(Handler):
     def render_links(self, latest=None):
-        pro_query = ProcrastinationTable.query(ProcrastinationTable.username == username)
+        pro_query = ProcrastinationTable.query(ProcrastinationTable.username == self.user)
         link_list = pro_query.fetch()
         links = [link.link for link in link_list]
         if(latest):
@@ -348,15 +384,15 @@ class ProcrastinationPage(Handler):
         self.render("procrastination.html", links=links)
 
     def get(self):
-        if not authenticated:
-            self.redirect('/login')
-        else:
+        if self.loggedin():
             self.render_links()
+        else:
+            self.redirect('/login')
 
     def post(self):
         link_val = self.request.get("addprocastination")
         if(link_val):
-            link = ProcrastinationTable(link = link_val, username = username)
+            link = ProcrastinationTable(link = link_val, username = self.user)
             link.put()
             self.render_links(link)
 
