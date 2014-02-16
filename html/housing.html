@@ -54,7 +54,7 @@
             <form method="post">
               <input type="submit" value="x" 
                      name="delete{{link.key("HousingTable")}}">
-              <a href="{{link.link}}" target="_blank">{{link.name}}</a>
+              <a href="{{link.link}}" target="_blank">{{link.name|safe}}</a>
             </form>
             <br>
           {% endfor %}
