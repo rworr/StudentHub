@@ -17,5 +17,5 @@ handlers:
   static_dir: images
 - url: /.*
   script: studenthub.application
-
+  secure: always
 

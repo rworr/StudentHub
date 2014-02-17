@@ -436,7 +436,7 @@ class LoginPage(Handler):
 		else:
 		    self.render("login.html", error="You don't even go here...")
         except urllib2.HTTPError:  
-            pass 
+            self.redirect('/login') 
 
 
 class LogoutPage(Handler):
