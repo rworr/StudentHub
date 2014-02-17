@@ -62,6 +62,7 @@
             {% endfor %}
             </tbody></table>
             <br/>
+          {% if weather is defined %}
           <h2>Weather</h2>
           <p class="lead">
             {{weather.city}}, {{weather.country}} <br/>
@@ -69,6 +70,7 @@
             {{weather.temperature}} &deg;C <br/>
             {{weather.weatherType}}
           </p>
+          {% endif %}
         </div>
 
         <div class="col-md-6">

@@ -289,32 +289,37 @@ class MainPage(Handler):
             self.logout()
             self.redirect('/login')
         else:
-            data = urllib2.urlopen("http://api.openweathermap.org/data/2.5/weather?q=Waterloo,ca")
-            json_weather = json.loads(str(data.read()))
-            city = json_weather["name"]
-            country = json_weather["sys"]["country"]
-            temperature = json_weather["main"]["temp"] - 273.15
-            weatherType = json_weather["weather"][0]["main"]
+            try:
+                data = urllib2.urlopen("http://api.openweathermap.org/data/2.5/weather?q=Waterloo,ca")
+                json_weather = json.loads(str(data.read()))
+                city = json_weather["name"]
+                country = json_weather["sys"]["country"]
+                temperature = json_weather["main"]["temp"] - 273.15
+                weatherType = json_weather["weather"][0]["main"]
 
-            code = json_weather["weather"][0]["id"]
-            if code > 199 and code < 233:
-                pic_link = "http://openweathermap.org/img/w/11d.png"
-            elif (code > 299 and code < 322) or (code > 519 and code < 532):
-                pic_link = "http://openweathermap.org/img/w/09d.png"
-            elif (code > 499 and code < 505):
-                pic_link = "http://openweathermap.org/img/w/10d.png"
-            elif (code == 511) or (code > 599 and code < 623):
-                pic_link = "http://openweathermap.org/img/w/13d.png"
-            elif (code > 699 and code < 782):
-                pic_link = "http://openweathermap.org/img/w/50d.png"
-            elif code == 800:
-                pic_link = "http://openweathermap.org/img/w/01d.png"
-            elif code == 801:
-                pic_link = "http://openweathermap.org/img/w/02d.png"
-            elif code == 802 or code == 803:
-                pic_link = "http://openweathermap.org/img/w/03d.png"
-            else:
-                pic_link = "http://openweathermap.org/img/w/04d.png"
+                code = json_weather["weather"][0]["id"]
+                if code > 199 and code < 233:
+                    pic_link = "http://openweathermap.org/img/w/11d.png"
+                elif (code > 299 and code < 322) or (code > 519 and code < 532):
+                    pic_link = "http://openweathermap.org/img/w/09d.png"
+                elif (code > 499 and code < 505):
+                    pic_link = "http://openweathermap.org/img/w/10d.png"
+                elif (code == 511) or (code > 599 and code < 623):
+                    pic_link = "http://openweathermap.org/img/w/13d.png"
+                elif (code > 699 and code < 782):
+                    pic_link = "http://openweathermap.org/img/w/50d.png"
+                elif code == 800:
+                    pic_link = "http://openweathermap.org/img/w/01d.png"
+                elif code == 801:
+                    pic_link = "http://openweathermap.org/img/w/02d.png"
+                elif code == 802 or code == 803:
+                    pic_link = "http://openweathermap.org/img/w/03d.png"
+                else:
+                    pic_link = "http://openweathermap.org/img/w/04d.png"
+
+                weather = Weather(city, country, temperature, weatherType, pic_link)
+            except urllib2.HTTPError:
+                weather = None
 
             classes = []
             curdate = datetime.datetime.now()
@@ -334,7 +339,7 @@ class MainPage(Handler):
                 dayString = unmapDay(day)
             dateString = curdate.strftime("%A %B %d, %Y")
 
-            self.render("index.html", weather = Weather(city, country, temperature, weatherType, pic_link), dayString = dayString, classes = classes, dateString = dateString)
+            self.render("index.html", weather = weather, dayString = dayString, classes = classes, dateString = dateString)
 
     def get(self):
         if self.loggedin():
