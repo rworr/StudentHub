@@ -66,7 +66,7 @@ def createClasses(classes):
     classlist = []
     for c in classes:
         location = c[0]
-        if c[1] != '&nbsp;' and 'TBA' not in c:
+        if '-' in c[1] and '-' in c[2]:
             temp = c[1].split('-')
             [start, end_time] = [temp[0], temp[1]]
             temp = start.split()
